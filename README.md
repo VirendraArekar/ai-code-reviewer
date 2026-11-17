@@ -32,6 +32,88 @@
 
 ---
 
+## 📸 Application Screenshots
+
+### ☀️ Light Mode Screens (2 screens per row)
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4 align="center">01. Dashboard Overview</h4>
+      <img src="./docs/images/01-dashboard-light.png" alt="Dashboard Overview" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">02. Connected Repositories</h4>
+      <img src="./docs/images/02-repositories-light.png" alt="Connected Repositories" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">03. Pull Requests Hub</h4>
+      <img src="./docs/images/03-pull-requests-light.png" alt="Pull Requests Hub" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">04. Pull Request Review & Diff</h4>
+      <img src="./docs/images/03b-pull-request-detail-light.png" alt="PR Review & Diff" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">05. Findings & Vulnerabilities</h4>
+      <img src="./docs/images/04-findings-light.png" alt="Findings & Vulnerabilities" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">06. Real-Time Analytics & Scoring</h4>
+      <img src="./docs/images/05-analytics-light.png" alt="Real-Time Analytics & Scoring" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">07. Engineering Teams</h4>
+      <img src="./docs/images/06-teams-light.png" alt="Engineering Teams" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">08. AI Provider Configurations</h4>
+      <img src="./docs/images/07-ai-providers-light.png" alt="AI Provider Configurations" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">09. GitHub App & Webhooks</h4>
+      <img src="./docs/images/08-github-integration-light.png" alt="GitHub App & Webhooks" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">10. Notification Center</h4>
+      <img src="./docs/images/09-notifications-light.png" alt="Notification Center" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">11. Security Audit Logs</h4>
+      <img src="./docs/images/10-audit-logs-light.png" alt="Security Audit Logs" width="100%" />
+    </td>
+    <td width="50%">
+      <h4 align="center">12. Organization Settings</h4>
+      <img src="./docs/images/11-organization-light.png" alt="Organization Settings" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h4 align="center">13. Usage & Billing Plans</h4>
+      <img src="./docs/images/12-billing-light.png" alt="Usage & Billing Plans" width="100%" />
+    </td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
+### 🌙 Dark Mode Preview (Findings Screen)
+
+<p align="center">
+  <img src="./docs/images/findings-dark.png" alt="Review Findings - Dark Mode" width="100%" />
+</p>
+
+---
+
 ## 🏗️ System Architecture
 
 The application adopts a modular monolith architecture with strictly defined bounded contexts:
@@ -60,6 +142,7 @@ The application adopts a modular monolith architecture with strictly defined bou
 ## 💻 Tech Stack
 
 ### Frontend
+
 - **Framework**: React 19 + TypeScript + Vite
 - **State Management**: Redux Toolkit + RTK Query
 - **Styling**: Tailwind CSS v4 + Lucide React + Framer Motion
@@ -69,6 +152,7 @@ The application adopts a modular monolith architecture with strictly defined bou
 - **Notifications**: Sonner
 
 ### Backend
+
 - **Platform**: Java 25 LTS
 - **Framework**: Spring Boot 3.4+ / 4.x with Spring Web, Spring Security, Spring Data JPA, Actuator
 - **ORM & Database**: Hibernate 6.x + HikariCP + MySQL 8+
@@ -76,6 +160,7 @@ The application adopts a modular monolith architecture with strictly defined bou
 - **Mapping & Utilities**: MapStruct + Lombok + Jackson
 
 ### AI Engine
+
 - Unified Multi-Provider Engine (OpenAI, Google Gemini, Ollama)
 - Temperature, token budgeting, diff-chunking, and prompt injection defense
 
@@ -84,6 +169,7 @@ The application adopts a modular monolith architecture with strictly defined bou
 ## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
+
 - Java 25+
 - Node.js 20+ & npm 10+
 - MySQL 8.0+
@@ -91,63 +177,35 @@ The application adopts a modular monolith architecture with strictly defined bou
 - Docker & Docker Compose (optional)
 
 ### 1. Database Setup
+
 ```bash
 # Create MySQL Database
 mysql -u root -p -e "CREATE DATABASE aicode_reviewer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
 ### 2. Backend Setup
+
 ```bash
 cd backend
 mvn clean install -DskipTests
 mvn spring-boot:run
 ```
+
 The backend API server starts at `http://localhost:8080/api/v1`.
 Swagger OpenAPI documentation is available at `http://localhost:8080/swagger-ui.html`.
 
 ### 3. Frontend Setup
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
 The React development server launches at `http://localhost:5173`.
 
 ---
 
-## 📋 Development Phases Roadmap
-
-- [x] **Phase 1**: Repository initialization and project architecture.
-- [ ] **Phase 2**: React frontend initialization and design system.
-- [ ] **Phase 3**: Spring Boot backend initialization.
-- [ ] **Phase 4**: MySQL integration and Flyway migrations.
-- [ ] **Phase 5**: Authentication and authorization.
-- [ ] **Phase 6**: User profile and onboarding.
-- [ ] **Phase 7**: GitHub OAuth integration.
-- [ ] **Phase 8**: GitHub App installation.
-- [ ] **Phase 9**: Repository management.
-- [ ] **Phase 10**: Webhook processing.
-- [ ] **Phase 11**: Pull request retrieval and diff processing.
-- [ ] **Phase 12**: AI provider abstraction.
-- [ ] **Phase 13**: AI code review engine.
-- [ ] **Phase 14**: Bug and code quality detection.
-- [ ] **Phase 15**: Security analysis.
-- [ ] **Phase 16**: Performance analysis.
-- [ ] **Phase 17**: AI findings management.
-- [ ] **Phase 18**: GitHub Checks integration.
-- [ ] **Phase 19**: Inline review comments.
-- [ ] **Phase 20**: Dashboard and analytics.
-- [ ] **Phase 21**: Findings management.
-- [ ] **Phase 22**: Team collaboration.
-- [ ] **Phase 23**: Notifications.
-- [ ] **Phase 24**: Usage and subscription management.
-- [ ] **Phase 25**: Admin dashboard and audit logs.
-- [ ] **Phase 26**: Automated testing.
-- [ ] **Phase 27**: Security hardening and optimization.
-- [ ] **Phase 28**: Docker and CI/CD.
-- [ ] **Phase 29**: Documentation and production readiness.
-
----
-
 ## 📄 License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

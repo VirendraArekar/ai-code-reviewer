@@ -1,7 +1,7 @@
 # ==========================================
-# Stage 1: Build the application using JDK 25
+# Stage 1: Build the application using JDK 21 LTS
 # ==========================================
-FROM eclipse-temurin:25-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /build
 
@@ -14,9 +14,9 @@ RUN apk add --no-cache maven && \
     mvn clean package -DskipTests
 
 # ==========================================
-# Stage 2: Runtime Image with lightweight JRE 25
+# Stage 2: Runtime Image with lightweight JRE 21 LTS
 # ==========================================
-FROM eclipse-temurin:25-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 # Security: Create dedicated non-root application user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

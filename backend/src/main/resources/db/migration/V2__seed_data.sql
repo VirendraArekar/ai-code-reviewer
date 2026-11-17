@@ -1,7 +1,7 @@
 -- ========================================================
 -- Seed Data for Development & Testing
 -- Password for all seed users is 'AdminPassword123!'
--- BCrypt Hash: $2a$10$wS2Fz8jV3.6fO6/U787jfe26f7z2XhFhO2BfCvhg0NZZp.J2v9rD2
+-- BCrypt Hash: $2a$10$d9jEkizqdlDFnMWPWCNS9euqNOBx2fOr683Wa/F1hQWi5VQ/vrCIy
 -- ========================================================
 
 -- Insert Default Organization
@@ -12,9 +12,9 @@ ON DUPLICATE KEY UPDATE name=VALUES(name);
 -- Insert Default Super Admin and Developers
 INSERT INTO users (id, email, password_hash, full_name, role, email_verified, organization_id)
 VALUES 
-('u-1', 'admin@aicode.com', '$2a$10$wS2Fz8jV3.6fO6/U787jfe26f7z2XhFhO2BfCvhg0NZZp.J2v9rD2', 'Virendra Arekar', 'SUPER_ADMIN', TRUE, 'org-1'),
-('u-2', 'alex@aicode.com', '$2a$10$wS2Fz8jV3.6fO6/U787jfe26f7z2XhFhO2BfCvhg0NZZp.J2v9rD2', 'Alex Rivera', 'TEAM_LEAD', TRUE, 'org-1'),
-('u-3', 'sarah@aicode.com', '$2a$10$wS2Fz8jV3.6fO6/U787jfe26f7z2XhFhO2BfCvhg0NZZp.J2v9rD2', 'Sarah Chen', 'DEVELOPER', TRUE, 'org-1')
+('u-1', 'admin@aicode.com', '$2a$10$d9jEkizqdlDFnMWPWCNS9euqNOBx2fOr683Wa/F1hQWi5VQ/vrCIy', 'Virendra Arekar', 'SUPER_ADMIN', TRUE, 'org-1'),
+('u-2', 'alex@aicode.com', '$2a$10$d9jEkizqdlDFnMWPWCNS9euqNOBx2fOr683Wa/F1hQWi5VQ/vrCIy', 'Alex Rivera', 'TEAM_LEAD', TRUE, 'org-1'),
+('u-3', 'sarah@aicode.com', '$2a$10$d9jEkizqdlDFnMWPWCNS9euqNOBx2fOr683Wa/F1hQWi5VQ/vrCIy', 'Sarah Chen', 'DEVELOPER', TRUE, 'org-1')
 ON DUPLICATE KEY UPDATE email=VALUES(email);
 
 -- Insert Organization Members

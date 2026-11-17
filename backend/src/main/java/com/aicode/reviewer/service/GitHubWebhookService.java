@@ -1,16 +1,18 @@
 package com.aicode.reviewer.service;
 
+import com.aicode.reviewer.dto.review.AiReviewResponse;
 import com.aicode.reviewer.entity.PullRequest;
-import com.aicode.reviewer.entity.PullRequestFile;
 import com.aicode.reviewer.entity.RepositoryEntity;
 import com.aicode.reviewer.entity.WebhookEvent;
-import com.aicode.reviewer.repository.PullRequestFileRepository;
 import com.aicode.reviewer.repository.PullRequestRepository;
 import com.aicode.reviewer.repository.RepositoryRepository;
 import com.aicode.reviewer.repository.WebhookEventRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,26 +25,32 @@ import java.util.UUID;
 
 @Service
 public class GitHubWebhookService {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GitHubWebhookService.class);
 
-    public GitHubWebhookService(RepositoryRepository repositoryRepository, PullRequestRepository pullRequestRepository, PullRequestFileRepository pullRequestFileRepository, WebhookEventRepository webhookEventRepository, AiReviewService aiReviewService) {
-        this.repositoryRepository = repositoryRepository;
-        this.pullRequestRepository = pullRequestRepository;
-        this.pullRequestFileRepository = pullRequestFileRepository;
-        this.webhookEventRepository = webhookEventRepository;
-        this.aiReviewService = aiReviewService;
-    }
-
+    private static final Logger log = LoggerFactory.getLogger(GitHubWebhookService.class);
 
     private final RepositoryRepository repositoryRepository;
     private final PullRequestRepository pullRequestRepository;
-    private final PullRequestFileRepository pullRequestFileRepository;
     private final WebhookEventRepository webhookEventRepository;
     private final AiReviewService aiReviewService;
+    private final GitHubService gitHubService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${app.github.webhook-secret:development_github_webhook_secret_hmac256}")
+    @Value("${app.github.webhook-secret:development_webhook_secret_key_123456}")
     private String webhookSecret;
+
+    public GitHubWebhookService(
+            RepositoryRepository repositoryRepository,
+            PullRequestRepository pullRequestRepository,
+            WebhookEventRepository webhookEventRepository,
+            @Lazy AiReviewService aiReviewService,
+            GitHubService gitHubService
+    ) {
+        this.repositoryRepository = repositoryRepository;
+        this.pullRequestRepository = pullRequestRepository;
+        this.webhookEventRepository = webhookEventRepository;
+        this.aiReviewService = aiReviewService;
+        this.gitHubService = gitHubService;
+    }
 
     public boolean verifySignature(String payload, String signatureHeader) {
         if (signatureHeader == null || !signatureHeader.startsWith("sha256=")) {
@@ -111,11 +119,11 @@ public class GitHubWebhookService {
         RepositoryEntity repository = repositoryRepository.findByFullName(fullName).orElse(null);
 
         if (repository == null) {
-            log.warn("Repository {} not connected in ReviewAI workspace. Skipping review.", fullName);
+            log.warn("Repository {} not connected in workspace. Skipping automated review.", fullName);
             return;
         }
 
-        int prNumber = prNode.path("number").asText().isEmpty() ? 1 : prNode.path("number").asInt();
+        int prNumber = prNode.path("number").asInt(1);
         String title = prNode.path("title").asText("Untitled PR");
         String body = prNode.path("body").asText("");
         String state = prNode.path("state").asText("OPEN").toUpperCase();
@@ -123,10 +131,10 @@ public class GitHubWebhookService {
         String avatarUrl = prNode.path("user").path("avatar_url").asText("");
         String htmlUrl = prNode.path("html_url").asText(repository.getHtmlUrl() + "/pull/" + prNumber);
         String sourceBranch = prNode.path("head").path("ref").asText("feature");
-        String targetBranch = prNode.path("base").path("ref").asText("main");
-        int additions = prNode.path("additions").asInt(10);
-        int deletions = prNode.path("deletions").asInt(2);
-        int changedFiles = prNode.path("changed_files").asInt(1);
+        String targetBranch = prNode.path("base").path("ref").asText(repository.getDefaultBranch());
+        int additions = prNode.path("additions").asInt(0);
+        int deletions = prNode.path("deletions").asInt(0);
+        int changedFiles = prNode.path("changed_files").asInt(0);
 
         PullRequest pr = pullRequestRepository.findByRepositoryIdAndGithubPrNumber(repository.getId(), prNumber)
                 .orElse(null);
@@ -156,18 +164,34 @@ public class GitHubWebhookService {
             pr.setDeletions(deletions);
             pr.setChangedFilesCount(changedFiles);
         }
-        pullRequestRepository.save(pr);
+        PullRequest savedPr = pullRequestRepository.save(pr);
+
+        String[] parts = fullName.split("/");
+        String owner = parts.length > 0 ? parts[0] : repository.getOwnerLogin();
+        String repoName = parts.length > 1 ? parts[1] : repository.getName();
+
+        // Fetch real files and patches from GitHub API
+        gitHubService.fetchAndSaveFilesForPr(savedPr, owner, repoName, prNumber);
 
         if (("opened".equals(action) || "synchronize".equals(action) || "reopened".equals(action)) && repository.isAutoReviewEnabled()) {
-            triggerAsyncReview(pr.getId());
+            triggerAsyncReview(savedPr.getId(), owner, repoName, prNumber, repository.isInlineCommentsEnabled());
         }
     }
 
     @Async
-    public void triggerAsyncReview(String pullRequestId) {
+    public void triggerAsyncReview(String pullRequestId, String owner, String repoName, int prNumber, boolean postComment) {
         try {
             log.info("Triggering async AI review for PR id: {}", pullRequestId);
-            aiReviewService.executeReview(pullRequestId, null);
+            AiReviewResponse reviewResponse = aiReviewService.executeReview(pullRequestId, null);
+
+            if (postComment && reviewResponse != null) {
+                String comment = "### 🤖 AI Code Reviewer Analysis\n\n" +
+                        "**Quality Score**: " + reviewResponse.getQualityScore() + "/100 | " +
+                        "**Security Score**: " + reviewResponse.getSecurityScore() + "/100\n\n" +
+                        reviewResponse.getSummary() + "\n\n" +
+                        "Found **" + reviewResponse.getFindings().size() + "** issue(s).";
+                gitHubService.postReviewComment(owner, repoName, prNumber, comment);
+            }
         } catch (Exception e) {
             log.error("Async review execution failed for PR: {}", pullRequestId, e);
         }

@@ -11,28 +11,41 @@ import com.aicode.reviewer.repository.OrganizationRepository;
 import com.aicode.reviewer.repository.PullRequestRepository;
 import com.aicode.reviewer.repository.RepositoryRepository;
 import com.aicode.reviewer.repository.ReviewFindingRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class RepositoryService {
 
-    public RepositoryService(RepositoryRepository repositoryRepository, OrganizationRepository organizationRepository, PullRequestRepository pullRequestRepository, ReviewFindingRepository reviewFindingRepository) {
-        this.repositoryRepository = repositoryRepository;
-        this.organizationRepository = organizationRepository;
-        this.pullRequestRepository = pullRequestRepository;
-        this.reviewFindingRepository = reviewFindingRepository;
-    }
-
+    private static final Logger log = LoggerFactory.getLogger(RepositoryService.class);
 
     private final RepositoryRepository repositoryRepository;
     private final OrganizationRepository organizationRepository;
     private final PullRequestRepository pullRequestRepository;
     private final ReviewFindingRepository reviewFindingRepository;
+    private final GitHubService gitHubService;
+
+    public RepositoryService(
+            RepositoryRepository repositoryRepository,
+            OrganizationRepository organizationRepository,
+            PullRequestRepository pullRequestRepository,
+            ReviewFindingRepository reviewFindingRepository,
+            @Lazy GitHubService gitHubService
+    ) {
+        this.repositoryRepository = repositoryRepository;
+        this.organizationRepository = organizationRepository;
+        this.pullRequestRepository = pullRequestRepository;
+        this.reviewFindingRepository = reviewFindingRepository;
+        this.gitHubService = gitHubService;
+    }
 
     public List<RepositoryResponse> getRepositories(String orgId, String search) {
         List<RepositoryEntity> list;
@@ -58,21 +71,49 @@ public class RepositoryService {
                 .orElseGet(() -> organizationRepository.findAll().stream().findFirst()
                         .orElseThrow(() -> new IllegalArgumentException("No organization found")));
 
-        String fullName = request.getFullName() != null && !request.getFullName().isBlank()
+        String rawInput = (request.getHtmlUrl() != null && !request.getHtmlUrl().isBlank())
+                ? request.getHtmlUrl()
+                : (request.getFullName() != null && !request.getFullName().isBlank())
                 ? request.getFullName()
-                : org.getSlug() + "/" + request.getName();
+                : request.getName();
+
+        String fullName = extractFullName(rawInput, org.getSlug(), request.getName());
+        String ownerLogin = fullName.contains("/") ? fullName.split("/")[0] : org.getSlug();
+        String repoName = fullName.contains("/") ? fullName.split("/")[1] : request.getName();
+
+        long githubRepoId = Math.abs(UUID.randomUUID().getMostSignificantBits());
+        String defaultBranch = request.getDefaultBranch() != null ? request.getDefaultBranch() : "main";
+        boolean isPrivate = request.getPrivateRepo() != null ? request.getPrivateRepo() : false;
+        String htmlUrl = "https://github.com/" + fullName;
+        String primaryLanguage = request.getPrimaryLanguage() != null ? request.getPrimaryLanguage() : "Java";
+
+        // Attempt live metadata fetch from GitHub API
+        try {
+            Map<String, Object> ghData = gitHubService.fetchRepositoryDetails(ownerLogin, repoName);
+            githubRepoId = (long) ghData.get("githubRepoId");
+            fullName = (String) ghData.get("fullName");
+            ownerLogin = (String) ghData.get("ownerLogin");
+            defaultBranch = (String) ghData.get("defaultBranch");
+            isPrivate = (boolean) ghData.get("privateRepo");
+            htmlUrl = (String) ghData.get("htmlUrl");
+            if (ghData.get("primaryLanguage") != null && !((String) ghData.get("primaryLanguage")).isBlank()) {
+                primaryLanguage = (String) ghData.get("primaryLanguage");
+            }
+        } catch (Exception e) {
+            log.warn("Could not query GitHub API directly for {} (using user-specified values): {}", fullName, e.getMessage());
+        }
 
         RepositoryEntity repo = RepositoryEntity.builder()
                 .id(UUID.randomUUID().toString())
                 .organization(org)
-                .githubRepoId(Math.abs(UUID.randomUUID().getMostSignificantBits()))
-                .name(request.getName())
+                .githubRepoId(githubRepoId)
+                .name(repoName)
                 .fullName(fullName)
-                .ownerLogin(fullName.split("/")[0])
-                .defaultBranch(request.getDefaultBranch() != null ? request.getDefaultBranch() : "main")
-                .privateRepo(request.getPrivateRepo() != null ? request.getPrivateRepo() : false)
-                .htmlUrl(request.getHtmlUrl() != null ? request.getHtmlUrl() : "https://github.com/" + fullName)
-                .primaryLanguage(request.getPrimaryLanguage() != null ? request.getPrimaryLanguage() : "Java")
+                .ownerLogin(ownerLogin)
+                .defaultBranch(defaultBranch)
+                .privateRepo(isPrivate)
+                .htmlUrl(htmlUrl)
+                .primaryLanguage(primaryLanguage)
                 .autoReviewEnabled(request.getAutoReviewEnabled() != null ? request.getAutoReviewEnabled() : true)
                 .inlineCommentsEnabled(request.getInlineCommentsEnabled() != null ? request.getInlineCommentsEnabled() : true)
                 .reviewMode(request.getReviewMode() != null ? request.getReviewMode() : ReviewMode.STANDARD)
@@ -85,7 +126,39 @@ public class RepositoryService {
                 .build();
 
         RepositoryEntity saved = repositoryRepository.save(repo);
+
+        // Immediately sync pull requests from GitHub
+        try {
+            gitHubService.syncRepositoryPullRequests(saved.getId());
+        } catch (Exception e) {
+            log.warn("Initial PR sync failed for {}: {}", fullName, e.getMessage());
+        }
+
         return mapToResponse(saved);
+    }
+
+    private String extractFullName(String input, String defaultOwner, String fallbackName) {
+        if (input == null || input.isBlank()) {
+            return defaultOwner + "/" + fallbackName;
+        }
+        String clean = input.trim();
+        if (clean.startsWith("https://github.com/")) {
+            clean = clean.replace("https://github.com/", "");
+        } else if (clean.startsWith("http://github.com/")) {
+            clean = clean.replace("http://github.com/", "");
+        }
+        if (clean.endsWith(".git")) {
+            clean = clean.substring(0, clean.length() - 4);
+        }
+        if (clean.contains("/")) {
+            return clean;
+        }
+        return defaultOwner + "/" + clean;
+    }
+
+    @Transactional
+    public int syncRepository(String id) {
+        return gitHubService.syncRepositoryPullRequests(id);
     }
 
     @Transactional
@@ -141,7 +214,7 @@ public class RepositoryService {
                 .lastReviewAt(r.getLastReviewAt())
                 .openPullRequestCount(openPrCount)
                 .totalFindingsCount(findingsCount)
-                .avgQualityScore(88)
+                .avgQualityScore(openPrCount > 0 ? 88 : 0)
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .build();

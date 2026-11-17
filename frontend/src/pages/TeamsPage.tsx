@@ -15,28 +15,7 @@ export const TeamsPage: React.FC = () => {
   const [teamName, setTeamName] = useState('');
   const [teamDesc, setTeamDesc] = useState('');
 
-  const fallbackTeams: Team[] = [
-    {
-      id: 'team-1',
-      organizationId: 'org-1',
-      name: 'Backend Platform',
-      description: 'Core microservices, auth, databases, and API gateways',
-      memberCount: 8,
-      repositoryCount: 5,
-      createdAt: '2026-01-10T00:00:00Z',
-    },
-    {
-      id: 'team-2',
-      organizationId: 'org-1',
-      name: 'Frontend & Mobile',
-      description: 'Web dashboards, mobile apps, and design systems',
-      memberCount: 6,
-      repositoryCount: 3,
-      createdAt: '2026-02-01T00:00:00Z',
-    },
-  ];
-
-  const teams = teamsList && teamsList.length > 0 ? teamsList : fallbackTeams;
+  const teams = teamsList || [];
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/repositories")
@@ -24,7 +25,6 @@ public class RepositoryController {
         this.repositoryService = repositoryService;
         this.authService = authService;
     }
-
 
     private final RepositoryService repositoryService;
     private final AuthService authService;
@@ -55,26 +55,26 @@ public class RepositoryController {
         return ResponseEntity.ok(repositoryService.createRepository(request, user.getOrganizationId()));
     }
 
+    @PostMapping("/{id}/sync")
+    @Operation(summary = "Sync pull requests and code diffs from GitHub")
+    public ResponseEntity<Map<String, Object>> syncRepository(@PathVariable String id) {
+        int count = repositoryService.syncRepository(id);
+        return ResponseEntity.ok(Map.of("status", "synced", "count", count));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Update repository review settings and rules")
     public ResponseEntity<RepositoryResponse> updateRepository(
             @PathVariable String id,
-            @RequestBody RepositoryRequest request
+            @Valid @RequestBody RepositoryRequest request
     ) {
         return ResponseEntity.ok(repositoryService.updateRepository(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Disconnect repository")
-    public ResponseEntity<Void> deleteRepository(@PathVariable String id) {
+    @Operation(summary = "Disconnect and remove a repository")
+    public ResponseEntity<Map<String, String>> deleteRepository(@PathVariable String id) {
         repositoryService.deleteRepository(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/sync")
-    @Operation(summary = "Sync repositories from connected GitHub account")
-    public ResponseEntity<List<RepositoryResponse>> syncGithubRepositories(@AuthenticationPrincipal UserDetails userDetails) {
-        UserDto user = authService.getCurrentUser(userDetails.getUsername());
-        return ResponseEntity.ok(repositoryService.getRepositories(user.getOrganizationId(), null));
+        return ResponseEntity.ok(Map.of("message", "Repository disconnected successfully."));
     }
 }

@@ -22,37 +22,7 @@ export const AiProvidersPage: React.FC = () => {
     message: string;
   } | null>(null);
 
-  const fallbackConfigs: AIProviderConfig[] = [
-    {
-      id: 'p-1',
-      provider: 'GEMINI',
-      modelName: 'gemini-2.0-flash',
-      hasApiKey: true,
-      baseUrl: 'https://generativelanguage.googleapis.com',
-      isDefault: true,
-      enabled: true,
-    },
-    {
-      id: 'p-2',
-      provider: 'OPENAI',
-      modelName: 'gpt-4o',
-      hasApiKey: true,
-      baseUrl: 'https://api.openai.com/v1',
-      isDefault: false,
-      enabled: true,
-    },
-    {
-      id: 'p-3',
-      provider: 'OLLAMA',
-      modelName: 'deepseek-coder:6.7b',
-      hasApiKey: false,
-      baseUrl: 'http://localhost:11434',
-      isDefault: false,
-      enabled: true,
-    },
-  ];
-
-  const configs = providersList && providersList.length > 0 ? providersList : fallbackConfigs;
+  const configs = providersList || [];
 
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 

@@ -33,6 +33,8 @@ import {
   useGetPullRequestFilesQuery,
   useTriggerReviewMutation,
   useChatWithPrMutation,
+  useSyncPullRequestMutation,
+  useGetFindingsQuery,
 } from '@/api/repositoryApi';
 import { useGetReviewByIdQuery, useGetFindingsByReviewQuery } from '@/api/repositoryApi';
 import { useUpdateFindingStatusMutation } from '@/api/repositoryApi';
@@ -52,177 +54,91 @@ export const PullRequestDetailPage: React.FC = () => {
     | 'chat'
   >('overview');
 
-  const { data: prData } = useGetPullRequestByIdQuery(id || '');
-  const { data: filesData } = useGetPullRequestFilesQuery(id || '');
+  const { data: prData, isLoading: isPrLoading, refetch: refetchPr } = useGetPullRequestByIdQuery(id || '');
+  const { data: filesData, refetch: refetchFiles } = useGetPullRequestFilesQuery(id || '');
+  const { data: findingsData, refetch: refetchFindings } = useGetFindingsQuery({});
   const [triggerReview, { isLoading: isReviewing }] = useTriggerReviewMutation();
+  const [syncPullRequest, { isLoading: isSyncing }] = useSyncPullRequestMutation();
   const [chatWithPr, { isLoading: isChatting }] = useChatWithPrMutation();
   const [updateFindingStatus] = useUpdateFindingStatusMutation();
 
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; timestamp: string }>>([
     {
       role: 'assistant',
-      text: 'Hello! I have reviewed this pull request. I can explain any flagged issues, verify OWASP compliance, or generate unit test cases for you. What would you like to know?',
+      text: 'Hello! I am your AI PR Review Assistant. I can explain any flagged issues, verify OWASP compliance, or generate unit test cases for this pull request. What would you like to know?',
       timestamp: 'Just now',
     },
   ]);
   const [chatInput, setChatInput] = useState('');
 
-  // Fallback realistic pull request data
-  const pr: PullRequest = prData || {
-    id: id || 'pr-1',
-    repositoryId: 'repo-1',
-    repositoryName: 'acme/api-gateway',
-    githubPrNumber: 42,
-    title: 'feat: add OAuth2 refresh token rotation & revocation endpoints',
-    description:
-      'Implements RFC 6749 compliant token rotation. When a refresh token is reused, all descendant tokens are automatically revoked to prevent session hijacking.',
-    authorUsername: 'alexdev',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces',
-    state: 'OPEN',
-    sourceBranch: 'feat/oauth2-rotation',
-    targetBranch: 'main',
-    htmlUrl: 'https://github.com/acme/api-gateway/pull/42',
-    additions: 342,
-    deletions: 48,
-    changedFilesCount: 4,
-    latestReviewId: 'rev-1',
-    latestReviewStatus: 'COMPLETED',
-    qualityScore: 89,
-    securityScore: 84,
-    criticalCount: 0,
-    highCount: 1,
-    mediumCount: 3,
-    lowCount: 2,
-    infoCount: 1,
-    createdAt: '2026-11-17T08:15:00Z',
-    updatedAt: '2026-11-17T08:45:00Z',
+  const pr = prData;
+  const filesList: PullRequestFile[] = filesData || [];
+  const [selectedFile, setSelectedFile] = useState<PullRequestFile | null>(null);
+
+  // Filter real findings for this pull request
+  const rawFindings = (findingsData || []).filter((f) => f.pullRequestId === id);
+  const [findingsList, setFindingsList] = useState<ReviewFinding[]>([]);
+  const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (filesList.length > 0 && !selectedFile) {
+      setSelectedFile(filesList[0]);
+    }
+  }, [filesList, selectedFile]);
+
+  React.useEffect(() => {
+    setFindingsList(rawFindings);
+    if (rawFindings.length > 0 && !expandedFindingId) {
+      setExpandedFindingId(rawFindings[0].id);
+    }
+  }, [findingsData, id]);
+
+  const handleSyncDiff = async () => {
+    if (!id) return;
+    try {
+      await syncPullRequest(id).unwrap();
+      refetchPr();
+      refetchFiles();
+      refetchFindings();
+    } catch (err) {
+      console.error('Failed to sync PR diff', err);
+    }
   };
 
-  const dummyFiles: PullRequestFile[] = [
-    {
-      id: 'f-1',
-      pullRequestId: pr.id,
-      filename: 'src/main/java/com/aicode/security/RefreshTokenService.java',
-      status: 'MODIFIED',
-      additions: 120,
-      deletions: 15,
-      findingsCount: 3,
-      patch: `@@ -45,8 +45,18 @@ public class RefreshTokenService {
--    public Token verify(String rawToken) {
--        return tokenRepo.findByToken(rawToken);
-+    @Transactional
-+    public Token verifyAndRotate(String rawToken) {
-+        Token token = tokenRepo.findByToken(rawToken)
-+            .orElseThrow(() -> new InvalidTokenException("Token not found"));
-+        if (token.isRevoked()) {
-+            tokenRepo.revokeFamily(token.getFamilyId());
-+            throw new CompromisedTokenException("Token reuse detected!");
-+        }
-+        token.setRevoked(true);
-+        return createNewToken(token.getUser(), token.getFamilyId());
-     }`,
-    },
-    {
-      id: 'f-2',
-      pullRequestId: pr.id,
-      filename: 'src/main/java/com/aicode/controller/AuthController.java',
-      status: 'MODIFIED',
-      additions: 45,
-      deletions: 8,
-      findingsCount: 1,
-      patch: `@@ -22,6 +22,12 @@ public class AuthController {
-+    @PostMapping("/refresh")
-+    public ResponseEntity<TokenResponse> refreshToken(@RequestBody TokenRequest req) {
-+        return ResponseEntity.ok(tokenService.verifyAndRotate(req.refreshToken()));
-+    }`,
-    },
-  ];
+  const handleTriggerDeepReview = async () => {
+    if (!id) return;
+    try {
+      await triggerReview({ prId: id, mode: 'DEEP' }).unwrap();
+      refetchPr();
+      refetchFiles();
+      refetchFindings();
+    } catch (err) {
+      console.error('Failed to trigger review', err);
+    }
+  };
 
-  const filesList = filesData && filesData.length > 0 ? filesData : dummyFiles;
-  const [selectedFile, setSelectedFile] = useState<PullRequestFile>(filesList[0]);
+  if (isPrLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400">
+        <Clock className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-400" />
+        <p className="text-sm">Loading pull request analysis...</p>
+      </div>
+    );
+  }
 
-  const fallbackFindings: ReviewFinding[] = [
-    {
-      id: 'find-1',
-      reviewId: 'rev-1',
-      repositoryId: 'repo-1',
-      pullRequestId: pr.id,
-      filePath: 'src/main/java/com/aicode/security/RefreshTokenService.java',
-      lineNumber: 48,
-      title: 'Potential Race Condition in Token Rotation Validation',
-      description: 'Concurrent requests with the same refresh token may bypass the revocation check due to missing row-level locking or optimistic lock.',
-      severity: 'HIGH',
-      category: 'SECURITY',
-      technicalExplanation:
-        'Between reading `token.isRevoked()` and persisting `token.setRevoked(true)`, two parallel HTTP requests can read `revoked = false` simultaneously and both receive new valid access tokens.',
-      whyItMatters:
-        'Allows an attacker who intercepted the refresh token to race against the legitimate user and obtain a parallel session.',
-      potentialImpact: 'Session hijacking and persistence across logout.',
-      recommendedSolution:
-        'Apply pessimistic write locking (`@Lock(LockModeType.PESSIMISTIC_WRITE)`) on `findByToken` or utilize database unique constraint on single-use nonce.',
-      originalCodeSnippet: 'Token token = tokenRepo.findByToken(rawToken)\n    .orElseThrow(() -> new InvalidTokenException("Token not found"));',
-      correctedCodeSnippet: 'Token token = tokenRepo.findByTokenWithLock(rawToken)\n    .orElseThrow(() -> new InvalidTokenException("Token not found"));',
-      confidenceScore: 0.94,
-      status: 'OPEN',
-      commentsCount: 2,
-      createdAt: '2026-11-17T08:45:00Z',
-      updatedAt: '2026-11-17T08:45:00Z',
-    },
-    {
-      id: 'find-2',
-      reviewId: 'rev-1',
-      repositoryId: 'repo-1',
-      pullRequestId: pr.id,
-      filePath: 'src/main/java/com/aicode/controller/AuthController.java',
-      lineNumber: 24,
-      title: 'Missing Rate Limiter on Authentication Refresh Endpoint',
-      description: 'The `/refresh` endpoint does not enforce IP or client-level rate limiting.',
-      severity: 'MEDIUM',
-      category: 'PERFORMANCE',
-      technicalExplanation: 'Unauthenticated or automated requests can flood the token revocation queries, degrading database performance.',
-      whyItMatters: 'Protects the auth service from denial of service and brute force scanning.',
-      potentialImpact: 'Database thread starvation under high load.',
-      recommendedSolution: 'Annotate endpoint with `@RateLimit(requests = 10, durationSeconds = 60)`.',
-      originalCodeSnippet: '@PostMapping("/refresh")\npublic ResponseEntity<TokenResponse> refreshToken(@RequestBody TokenRequest req)',
-      correctedCodeSnippet: '@RateLimit(limit = 10, period = 60)\n@PostMapping("/refresh")\npublic ResponseEntity<TokenResponse> refreshToken(@Valid @RequestBody TokenRequest req)',
-      confidenceScore: 0.88,
-      status: 'OPEN',
-      commentsCount: 0,
-      createdAt: '2026-11-17T08:45:00Z',
-      updatedAt: '2026-11-17T08:45:00Z',
-    },
-    {
-      id: 'find-3',
-      reviewId: 'rev-1',
-      repositoryId: 'repo-1',
-      pullRequestId: pr.id,
-      filePath: 'src/main/java/com/aicode/security/RefreshTokenService.java',
-      lineNumber: 52,
-      title: 'Missing Unit Test for Replay Token Family Revocation',
-      description: 'No test case verifies that replayed tokens trigger `CompromisedTokenException` and revoke child sessions.',
-      severity: 'LOW',
-      category: 'TESTING',
-      technicalExplanation: 'Code coverage analysis shows 0% coverage on branch `if (token.isRevoked())`.',
-      whyItMatters: 'Guarantees the core security invariant works as expected over future refactoring.',
-      potentialImpact: 'Undetected regression in future pull requests.',
-      recommendedSolution: 'Add unit test `testReplayTokenRevokesFamily()` in `RefreshTokenServiceTest.java`.',
-      correctedCodeSnippet: `@Test
-void shouldRevokeFamilyOnReusedToken() {
-    Token token = Token.builder().token("xyz").revoked(true).familyId("fam-1").build();
-    when(tokenRepo.findByToken("xyz")).thenReturn(Optional.of(token));
-    assertThrows(CompromisedTokenException.class, () -> service.verifyAndRotate("xyz"));
-    verify(tokenRepo).revokeFamily("fam-1");
-}`,
-      confidenceScore: 0.96,
-      status: 'OPEN',
-      commentsCount: 1,
-      createdAt: '2026-11-17T08:45:00Z',
-      updatedAt: '2026-11-17T08:45:00Z',
-    },
-  ];
-
-  const [findingsList, setFindingsList] = useState<ReviewFinding[]>(fallbackFindings);
-  const [expandedFindingId, setExpandedFindingId] = useState<string | null>('find-1');
+  if (!pr) {
+    return (
+      <Card className="p-12 text-center max-w-lg mx-auto">
+        <h3 className="text-lg font-bold text-white mb-2">Pull Request Not Found</h3>
+        <p className="text-sm text-slate-400 mb-6">
+          The requested pull request does not exist or has not been synced yet.
+        </p>
+        <NavLink to="/pull-requests">
+          <Button variant="primary">Back to Pull Requests</Button>
+        </NavLink>
+      </Card>
+    );
+  }
 
   const handleStatusChange = async (findingId: string, newStatus: FindingStatus) => {
     setFindingsList(
@@ -253,7 +169,7 @@ void shouldRevokeFamilyOnReusedToken() {
     } catch (err) {
       // Realistic contextual AI response
       setTimeout(() => {
-        let answer = `I analyzed the diff in \`${selectedFile.filename}\` for "${promptText}".`;
+        let answer = `I analyzed the diff in \`${(selectedFile ? selectedFile.filename : 'No file')}\` for "${promptText}".`;
         if (promptText.toLowerCase().includes('sql') || promptText.toLowerCase().includes('injection')) {
           answer = `No SQL injection vulnerabilities were detected in this PR. All queries in \`RefreshTokenService\` use JPA entity methods with parameterized queries. However, ensure that any custom \`@Query\` annotations continue to avoid string concatenation.`;
         } else if (promptText.toLowerCase().includes('test')) {
@@ -329,9 +245,18 @@ void testTokenRotationSuccess() {
 
           <div className="flex items-center gap-3">
             <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncDiff}
+              isLoading={isSyncing}
+              leftIcon={<Clock className="w-4 h-4" />}
+            >
+              Sync Diff from GitHub
+            </Button>
+            <Button
               variant="primary"
               size="sm"
-              onClick={() => triggerReview({ prId: pr.id, mode: 'DEEP' })}
+              onClick={handleTriggerDeepReview}
               isLoading={isReviewing}
               leftIcon={<Sparkles className="w-4 h-4" />}
             >
@@ -449,7 +374,7 @@ void testTokenRotationSuccess() {
                   key={file.id}
                   onClick={() => setSelectedFile(file)}
                   className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-center justify-between ${
-                    selectedFile.id === file.id
+                    selectedFile?.id === file.id
                       ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
@@ -468,10 +393,10 @@ void testTokenRotationSuccess() {
           <Card className="lg:col-span-3 p-4 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <span className="font-mono text-xs text-white font-semibold">
-                {selectedFile.filename}
+                {(selectedFile ? selectedFile.filename : 'No file')}
               </span>
               <span className="text-xs text-slate-400 font-mono">
-                {selectedFile.status} • {selectedFile.findingsCount} findings
+                {(selectedFile ? selectedFile.status : '')} • {(selectedFile ? selectedFile.findingsCount : 0)} findings
               </span>
             </div>
 
@@ -480,7 +405,7 @@ void testTokenRotationSuccess() {
                 height="100%"
                 defaultLanguage="java"
                 theme="vs-dark"
-                value={selectedFile.patch || '// No diff patch available'}
+                value={selectedFile?.patch || '// No diff patch available'}
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },

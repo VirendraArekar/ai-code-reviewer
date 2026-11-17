@@ -25,11 +25,11 @@ class GitHubWebhookServiceTest {
     void setUp() {
         RepositoryRepository repoRepo = Mockito.mock(RepositoryRepository.class);
         PullRequestRepository prRepo = Mockito.mock(PullRequestRepository.class);
-        PullRequestFileRepository fileRepo = Mockito.mock(PullRequestFileRepository.class);
         WebhookEventRepository eventRepo = Mockito.mock(WebhookEventRepository.class);
         AiReviewService aiReviewService = Mockito.mock(AiReviewService.class);
+        GitHubService gitHubService = Mockito.mock(GitHubService.class);
 
-        service = new GitHubWebhookService(repoRepo, prRepo, fileRepo, eventRepo, aiReviewService);
+        service = new GitHubWebhookService(repoRepo, prRepo, eventRepo, aiReviewService, gitHubService);
         ReflectionTestUtils.setField(service, "webhookSecret", secret);
     }
 

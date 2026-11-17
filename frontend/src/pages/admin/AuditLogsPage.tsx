@@ -9,43 +9,7 @@ export const AuditLogsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const { data: logsData } = useGetAuditLogsQuery({ search });
 
-  const fallbackLogs: AuditLogItem[] = [
-    {
-      id: 'log-1',
-      userId: 'u-1',
-      userEmail: 'admin@aicode.com',
-      action: 'REPOSITORY_REVIEW_TRIGGERED',
-      entityType: 'PULL_REQUEST',
-      entityId: 'pr-1',
-      ipAddress: '192.168.1.45',
-      details: 'Triggered DEEP review with GEMINI gemini-2.0-flash',
-      createdAt: '2026-11-17T08:45:00Z',
-    },
-    {
-      id: 'log-2',
-      userId: 'u-1',
-      userEmail: 'admin@aicode.com',
-      action: 'AI_PROVIDER_KEY_UPDATED',
-      entityType: 'AI_PROVIDER_CONFIG',
-      entityId: 'p-1',
-      ipAddress: '192.168.1.45',
-      details: 'Updated Google Gemini API credentials (AES-256 encrypted)',
-      createdAt: '2026-11-17T07:30:00Z',
-    },
-    {
-      id: 'log-3',
-      userId: 'u-2',
-      userEmail: 'alex@aicode.com',
-      action: 'FINDING_RESOLVED',
-      entityType: 'REVIEW_FINDING',
-      entityId: 'find-2',
-      ipAddress: '10.0.4.18',
-      details: 'Marked N+1 query issue as RESOLVED with applied batch fetch',
-      createdAt: '2026-11-16T16:00:00Z',
-    },
-  ];
-
-  const logs = logsData && logsData.length > 0 ? logsData : fallbackLogs;
+  const logs = logsData || [];
 
   return (
     <div className="space-y-6">

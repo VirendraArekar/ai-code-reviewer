@@ -24,7 +24,7 @@
     --radius: 0.75rem;
   }
 
-  .light {
+  html.light {
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -35,9 +35,9 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 217 91% 55%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 92%;
+    --muted: 210 40% 94%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 92%;
+    --accent: 210 40% 94%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -50,6 +50,7 @@
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 code, pre, .font-mono {
@@ -70,4 +71,365 @@ code, pre, .font-mono {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
+}
+
+/* ========================================================
+   LIGHT & DARK MODE COMPREHENSIVE STYLING
+   ======================================================== */
+
+html.light {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.light body {
+  background-color: #f8fafc !important; /* slate-50 */
+  color: #0f172a !important;            /* slate-900 */
+}
+
+/* Navbar in light mode */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light header input {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light header input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light header kbd {
+  background-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html.light header button,
+html.light header a {
+  color: #475569;
+}
+
+html.light header button:hover,
+html.light header a:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Sidebar in light mode */
+html.light aside,
+html.light aside > div {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html.light aside .text-white {
+  color: #0f172a !important;
+}
+
+html.light aside .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light aside a:hover {
+  background-color: #f8fafc !important;
+  color: #4f46e5 !important;
+}
+
+html.light aside a.bg-indigo-600\/10,
+html.light aside a[class*="bg-indigo-600/10"],
+html.light aside a[class*="border-indigo-500"] {
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  border-color: #c7d2fe !important;
+}
+
+/* Cards & Surfaces */
+html.light .rounded-2xl.border-slate-800\/80,
+html.light [class*="bg-slate-900/70"],
+html.light [class*="bg-slate-900/80"],
+html.light [class*="bg-slate-900/90"],
+html.light [class*="bg-slate-900/95"],
+html.light [class*="bg-slate-900/60"],
+html.light div.bg-slate-900,
+html.light [class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Inner containers & sub-cards */
+html.light [class*="bg-slate-950/60"],
+html.light [class*="bg-slate-950/50"],
+html.light [class*="bg-slate-950/40"],
+html.light [class*="bg-slate-950/80"],
+html.light [class*="bg-slate-950/90"],
+html.light div.bg-slate-950,
+html.light [class*="bg-slate-950"] {
+  background-color: #f1f5f9 !important; /* slate-100 */
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html.light [class*="bg-slate-800/60"],
+html.light [class*="bg-slate-800/80"],
+html.light [class*="bg-slate-800/50"],
+html.light [class*="bg-slate-800"] {
+  background-color: #e2e8f0 !important; /* slate-200 */
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+/* Text Colors */
+html.light h1.text-white,
+html.light h2.text-white,
+html.light h3.text-white,
+html.light h4.text-white,
+html.light h5.text-white,
+html.light span.text-white,
+html.light p.text-white,
+html.light div.text-white {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Borders */
+html.light [class*="border-slate-800"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light [class*="border-slate-700"] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Form Inputs, Selects & Textareas */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Retain high-contrast white text on Primary CTA buttons */
+html.light button[class*="bg-indigo-600"],
+html.light button[class*="bg-indigo-500"],
+html.light a[class*="bg-indigo-600"],
+html.light div[class*="bg-gradient-to"] {
+  color: #ffffff !important;
+}
+
+html.light button[class*="bg-indigo-600"] span,
+html.light a[class*="bg-indigo-600"] span {
+  color: #ffffff !important;
+}
+
+/* Secondary & outline buttons in light mode */
+html.light button.bg-slate-800,
+html.light button.bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light button.bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Badges in light mode */
+html.light [class*="bg-indigo-500/10"] {
+  background-color: #eef2ff !important;
+  color: #4338ca !important;
+}
+
+html.light [class*="bg-emerald-500/10"] {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+}
+
+html.light [class*="bg-rose-500/10"] {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+html.light [class*="bg-amber-500/10"] {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+}
+
+html.light [class*="bg-purple-500/10"] {
+  background-color: #faf5ff !important;
+  color: #7e22ce !important;
+}
+
+html.light [class*="bg-sky-500/10"] {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+/* Code, Monaco & Diff pre */
+html.light pre,
+html.light code:not([class*="text-"]):not(pre code) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Modals */
+html.light div[role="dialog"],
+html.light .fixed.inset-0.z-50 .rounded-2xl {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Dropdown / popover menus */
+html.light [role="menu"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+/* Sonner Toast Styling Enhancements */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
+
+[data-sonner-toaster][data-x-position="right"] {
+  right: 1.5rem !important;
+}
+
+[data-sonner-toaster][data-y-position="top"] {
+  top: 1.5rem !important;
+}
+
+[data-sonner-toast] {
+  border-radius: 1rem !important;
+  font-family: inherit !important;
+  font-size: 0.875rem !important;
+  padding: 1rem 1.25rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Light mode toasts */
+html.light [data-sonner-toast] {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html.light [data-sonner-toast][data-type="success"] {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #14532d !important;
+}
+
+html.light [data-sonner-toast][data-type="error"] {
+  background: #fff1f2 !important;
+  border-color: #fca5a5 !important;
+  color: #881337 !important;
+}
+
+html.light [data-sonner-toast][data-type="warning"] {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+  color: #78350f !important;
+}
+
+html.light [data-sonner-toast][data-type="info"] {
+  background: #f0f9ff !important;
+  border-color: #bae6fd !important;
+  color: #0c4a6e !important;
+}
+
+/* Dark mode toasts */
+html.dark [data-sonner-toast],
+:root:not(.light) [data-sonner-toast] {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #1e293b !important;
+}
+
+html.dark [data-sonner-toast][data-type="success"],
+:root:not(.light) [data-sonner-toast][data-type="success"] {
+  background: #062419 !important;
+  border-color: #059669 !important;
+  color: #ecfdf5 !important;
+}
+
+html.dark [data-sonner-toast][data-type="error"],
+:root:not(.light) [data-sonner-toast][data-type="error"] {
+  background: #2b0c14 !important;
+  border-color: #e11d48 !important;
+  color: #fff1f2 !important;
+}
+
+html.dark [data-sonner-toast][data-type="warning"],
+:root:not(.light) [data-sonner-toast][data-type="warning"] {
+  background: #261605 !important;
+  border-color: #d97706 !important;
+  color: #fffbeb !important;
+}
+
+html.dark [data-sonner-toast][data-type="info"],
+:root:not(.light) [data-sonner-toast][data-type="info"] {
+  background: #082136 !important;
+  border-color: #0284c7 !important;
+  color: #f0f9ff !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-size: 0.775rem !important;
+  line-height: 1.15rem !important;
+  opacity: 0.85 !important;
+  margin-top: 0.25rem !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  opacity: 0.7 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  opacity: 1 !important;
 }

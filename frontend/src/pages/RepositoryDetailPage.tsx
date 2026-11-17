@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { Badge } from '@/components/ui/Badge';
+import { notify } from '@/lib/notify';
 import {
   useGetRepositoryByIdQuery,
   useUpdateRepositoryMutation,
@@ -94,9 +95,11 @@ export const RepositoryDetailPage: React.FC = () => {
       await updateRepository({ id, data: formData as any }).unwrap();
       setIsSavedToast(true);
       setTimeout(() => setIsSavedToast(false), 3000);
+      notify.success('Settings Saved', 'Repository configuration updated successfully.');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Save Failed', err?.data?.message || 'Failed to update repository settings.');
     }
   };
 
@@ -104,17 +107,24 @@ export const RepositoryDetailPage: React.FC = () => {
     if (!id) return;
     try {
       await syncRepository(id).unwrap();
+      notify.success('Repository Synced', 'Pull requests and diffs have been synchronized.');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Sync error', err);
+      notify.error('Sync Failed', err?.data?.message || 'Failed to sync pull requests from GitHub.');
     }
   };
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to disconnect this repository?')) {
       if (id) {
-        await deleteRepository(id);
-        navigate('/repositories');
+        try {
+          await deleteRepository(id).unwrap();
+          notify.success('Repository Disconnected', 'Repository was removed successfully.');
+          navigate('/repositories');
+        } catch (err: any) {
+          notify.error('Delete Failed', err?.data?.message || 'Could not delete repository.');
+        }
       }
     }
   };

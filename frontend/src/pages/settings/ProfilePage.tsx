@@ -4,6 +4,7 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppSelector } from '@/store';
+import { notify } from '@/lib/notify';
 import { useChangePasswordMutation, useUpdateProfileMutation } from '@/api/authApi';
 
 export const ProfilePage: React.FC = () => {
@@ -24,8 +25,10 @@ export const ProfilePage: React.FC = () => {
     try {
       await updateProfile({ fullName }).unwrap();
       setFeedback('Profile details saved successfully.');
+      notify.success('Profile Updated', 'Profile details have been saved.');
     } catch (err: any) {
       setFeedback('Failed to update profile.');
+      notify.error('Update Failed', err?.data?.message || 'Failed to update profile.');
     }
   };
 
@@ -34,16 +37,19 @@ export const ProfilePage: React.FC = () => {
     setFeedback(null);
     if (newPassword !== confirmPassword) {
       setFeedback('New passwords do not match.');
+      notify.warning('Password Mismatch', 'The new passwords entered do not match.');
       return;
     }
     try {
       await changePassword({ currentPassword, newPassword }).unwrap();
       setFeedback('Password changed successfully.');
+      notify.success('Password Changed', 'Your account password has been updated.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
       setFeedback('Failed to change password.');
+      notify.error('Password Update Failed', err?.data?.message || 'Failed to change password.');
     }
   };
 

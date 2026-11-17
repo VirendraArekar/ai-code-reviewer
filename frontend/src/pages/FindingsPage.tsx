@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input, Select } from '@/components/ui/Input';
+import { notify } from '@/lib/notify';
 import { useGetFindingsQuery, useUpdateFindingStatusMutation } from '@/api/repositoryApi';
 import { ReviewFinding, FindingSeverity, FindingCategory, FindingStatus } from '@/types';
 
@@ -43,9 +44,11 @@ export const FindingsPage: React.FC = () => {
   const handleStatusChange = async (findingId: string, status: FindingStatus) => {
     try {
       await updateFindingStatus({ findingId, status }).unwrap();
+      notify.success('Status Updated', `Finding marked as ${status.replace('_', ' ').toLowerCase()}.`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Update Failed', err?.data?.message || 'Failed to update finding status.');
     }
   };
 

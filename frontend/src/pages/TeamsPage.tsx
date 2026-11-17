@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { notify } from '@/lib/notify';
 import { useGetTeamsQuery, useCreateTeamMutation } from '@/api/settingsApi';
 import { Team } from '@/types';
 
@@ -23,11 +24,14 @@ export const TeamsPage: React.FC = () => {
     try {
       await createTeam({ name: teamName, description: teamDesc }).unwrap();
       setIsModalOpen(false);
+      const createdName = teamName;
       setTeamName('');
       setTeamDesc('');
+      notify.success('Team Created', `Team "${createdName}" was created successfully.`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Creation Failed', err?.data?.message || 'Failed to create team.');
     }
   };
 

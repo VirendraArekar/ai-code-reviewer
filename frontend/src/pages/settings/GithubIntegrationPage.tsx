@@ -17,6 +17,7 @@ import { GithubIcon } from '@/components/icons/GithubIcon';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { notify } from '@/lib/notify';
 import {
   useGetGithubAppConfigQuery,
   useConvertGithubAppCodeMutation,
@@ -59,12 +60,14 @@ export const GithubIntegrationPage: React.FC = () => {
         .unwrap()
         .then((res) => {
           setCreatedAppResult(res);
+          notify.success('GitHub App Created', 'App manifest credentials and private key retrieved successfully.');
           refetch();
           // Clear query params cleanly without reloading
           window.history.replaceState({}, document.title, window.location.pathname);
         })
         .catch((err) => {
           console.error('Failed to convert GitHub manifest code:', err);
+          notify.error('App Creation Failed', err?.data?.message || 'Failed to exchange GitHub manifest code.');
         });
     }
   }, [searchParams, convertCode, refetch]);
@@ -74,12 +77,14 @@ export const GithubIntegrationPage: React.FC = () => {
       webhookMode === 'tunnel' && publicTunnelUrl ? publicTunnelUrl : defaultWebhookUrl
     );
     setCopiedWebhook(true);
+    notify.success('Copied to Clipboard', 'Webhook URL copied.');
     setTimeout(() => setCopiedWebhook(false), 2000);
   };
 
   const copySecret = () => {
     navigator.clipboard.writeText(webhookSecret);
     setCopiedSecret(true);
+    notify.success('Copied to Clipboard', 'Webhook secret copied.');
     setTimeout(() => setCopiedSecret(false), 2000);
   };
 
@@ -94,6 +99,7 @@ export const GithubIntegrationPage: React.FC = () => {
     ].join('\n');
     navigator.clipboard.writeText(snippet);
     setCopiedEnv(true);
+    notify.success('Copied to Clipboard', 'Environment variables (.env) copied.');
     setTimeout(() => setCopiedEnv(false), 2500);
   };
 
@@ -108,6 +114,7 @@ export const GithubIntegrationPage: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    notify.success('Key Downloaded', 'Private key saved as .pem file.');
   };
 
   const handleCreateAppViaManifest = () => {

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useLoginMutation } from '@/api/authApi';
 import { useAppDispatch } from '@/store';
 import { setCredentials } from '@/store/slices/authSlice';
+import { notify } from '@/lib/notify';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -42,12 +43,13 @@ export const LoginPage: React.FC = () => {
     try {
       const response = await login(data).unwrap();
       dispatch(setCredentials(response));
+      notify.success('Welcome Back', `Successfully signed in as ${data.email}.`);
       const from = (location.state as any)?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (err: any) {
-      setErrorMessage(
-        err?.data?.message || 'Invalid email or password. Please try again.'
-      );
+      const msg = err?.data?.message || 'Invalid email or password. Please try again.';
+      setErrorMessage(msg);
+      notify.error('Authentication Failed', msg);
     }
   };
 

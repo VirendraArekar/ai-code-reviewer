@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ScoreGauge } from '@/components/ui/ScoreGauge';
 import { Tabs } from '@/components/ui/Tabs';
+import { notify } from '@/lib/notify';
 import {
   useGetPullRequestByIdQuery,
   useGetPullRequestFilesQuery,
@@ -97,23 +98,28 @@ export const PullRequestDetailPage: React.FC = () => {
     if (!id) return;
     try {
       await syncPullRequest(id).unwrap();
+      notify.success('Diff Synchronized', 'Fetched latest commit patches and changed files from GitHub.');
       refetchPr();
       refetchFiles();
       refetchFindings();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to sync PR diff', err);
+      notify.error('Sync Failed', err?.data?.message || 'Failed to sync pull request diff from GitHub.');
     }
   };
 
   const handleTriggerDeepReview = async () => {
     if (!id) return;
     try {
+      notify.info('Deep Review Started', 'Analyzing full PR diff with exhaustive security & architectural checks...');
       await triggerReview({ prId: id, mode: 'DEEP' }).unwrap();
+      notify.success('AI Review Complete', 'Deep AI code review finished with updated scores and findings.');
       refetchPr();
       refetchFiles();
       refetchFindings();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to trigger review', err);
+      notify.error('Review Failed', err?.data?.message || 'Failed to complete review. Check your AI provider settings.');
     }
   };
 
@@ -146,8 +152,10 @@ export const PullRequestDetailPage: React.FC = () => {
     );
     try {
       await updateFindingStatus({ findingId, status: newStatus }).unwrap();
-    } catch (err) {
+      notify.success('Finding Updated', `Status changed to ${newStatus.replace('_', ' ').toLowerCase()}.`);
+    } catch (err: any) {
       console.error(err);
+      notify.error('Update Failed', err?.data?.message || 'Failed to update finding status.');
     }
   };
 

@@ -34,7 +34,7 @@ public class SettingsController {
             OrganizationRepository organizationRepository,
             EncryptionService encryptionService,
             AuthService authService,
-            GitHubService gitHubService
+            @org.springframework.context.annotation.Lazy GitHubService gitHubService
     ) {
         this.aiProviderConfigRepository = aiProviderConfigRepository;
         this.organizationRepository = organizationRepository;

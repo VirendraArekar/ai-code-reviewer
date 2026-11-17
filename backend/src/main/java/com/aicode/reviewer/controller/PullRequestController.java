@@ -19,7 +19,11 @@ import java.util.Map;
 @Tag(name = "Pull Request Management", description = "Endpoints for pull requests, diff viewer, AI triggers, and PR chat")
 public class PullRequestController {
 
-    public PullRequestController(PullRequestService pullRequestService, AiReviewService aiReviewService, GitHubService gitHubService) {
+    public PullRequestController(
+            PullRequestService pullRequestService,
+            AiReviewService aiReviewService,
+            @org.springframework.context.annotation.Lazy GitHubService gitHubService
+    ) {
         this.pullRequestService = pullRequestService;
         this.aiReviewService = aiReviewService;
         this.gitHubService = gitHubService;

@@ -21,7 +21,10 @@ import java.util.Map;
 @Tag(name = "Repository Management", description = "Endpoints for managing connected repositories and review configurations")
 public class RepositoryController {
 
-    public RepositoryController(RepositoryService repositoryService, AuthService authService) {
+    public RepositoryController(
+            @org.springframework.context.annotation.Lazy RepositoryService repositoryService,
+            AuthService authService
+    ) {
         this.repositoryService = repositoryService;
         this.authService = authService;
     }

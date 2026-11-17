@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,6 +83,32 @@ public class RepositoryService {
         String ownerLogin = fullName.contains("/") ? fullName.split("/")[0] : org.getSlug();
         String repoName = fullName.contains("/") ? fullName.split("/")[1] : request.getName();
 
+        // Check if repository with this fullName is already connected
+        Optional<RepositoryEntity> existing = repositoryRepository.findByFullName(fullName);
+        if (existing.isPresent()) {
+            RepositoryEntity repo = existing.get();
+            if (request.getReviewMode() != null) repo.setReviewMode(request.getReviewMode());
+            if (request.getMinSeverity() != null) repo.setMinSeverity(request.getMinSeverity());
+            if (request.getAiProvider() != null) repo.setAiProvider(request.getAiProvider());
+            if (request.getAiModel() != null) repo.setAiModel(request.getAiModel());
+            if (request.getAutoReviewEnabled() != null) repo.setAutoReviewEnabled(request.getAutoReviewEnabled());
+            if (request.getInlineCommentsEnabled() != null) repo.setInlineCommentsEnabled(request.getInlineCommentsEnabled());
+            if (request.getMaxDiffSizeKb() != null) repo.setMaxDiffSizeKb(request.getMaxDiffSizeKb());
+            if (request.getExcludedPatterns() != null) repo.setExcludedPatterns(request.getExcludedPatterns());
+            if (request.getCustomInstructions() != null) repo.setCustomInstructions(request.getCustomInstructions());
+
+            RepositoryEntity updated = repositoryRepository.save(repo);
+            String repoId = updated.getId();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    gitHubService.syncRepositoryPullRequests(repoId);
+                } catch (Exception e) {
+                    log.warn("Background PR sync failed for existing repo {}: {}", repo.getFullName(), e.getMessage());
+                }
+            });
+            return mapToResponse(updated);
+        }
+
         long githubRepoId = Math.abs(UUID.randomUUID().getMostSignificantBits());
         String defaultBranch = request.getDefaultBranch() != null ? request.getDefaultBranch() : "main";
         boolean isPrivate = request.getPrivateRepo() != null ? request.getPrivateRepo() : false;
@@ -126,13 +154,16 @@ public class RepositoryService {
                 .build();
 
         RepositoryEntity saved = repositoryRepository.save(repo);
+        String repoId = saved.getId();
 
-        // Immediately sync pull requests from GitHub
-        try {
-            gitHubService.syncRepositoryPullRequests(saved.getId());
-        } catch (Exception e) {
-            log.warn("Initial PR sync failed for {}: {}", fullName, e.getMessage());
-        }
+        // Immediately sync pull requests in background thread so the HTTP response returns immediately without hanging!
+        CompletableFuture.runAsync(() -> {
+            try {
+                gitHubService.syncRepositoryPullRequests(repoId);
+            } catch (Exception e) {
+                log.warn("Background initial PR sync failed for {}: {}", saved.getFullName(), e.getMessage());
+            }
+        });
 
         return mapToResponse(saved);
     }

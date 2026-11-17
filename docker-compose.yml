@@ -1,0 +1,100 @@
+services:
+  # ==========================================
+  # MySQL Database Service (Persistent Store)
+  # ==========================================
+  mysql:
+    image: mysql:8.4
+    container_name: aicode-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_password
+      MYSQL_DATABASE: aicodereviewer
+      MYSQL_USER: aicode_user
+      MYSQL_PASSWORD: aicode_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=200
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - aicode-network
+
+  # ==========================================
+  # Java 25 / Spring Boot Backend API Service
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aicode-backend
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aicodereviewer?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: aicode_user
+      SPRING_DATASOURCE_PASSWORD: aicode_password
+      APP_JWT_SECRET: c2VjdXJlX2FpX2NvZGVfcmV2aWV3ZXJfaHNiYzI1Nl9rZXlfZm9yX3Byb2R1Y3Rpb25fc2Fhc19hcHBsaWNhdGlvbl8xMjM0NTY3ODkwMTI=
+      APP_SECURITY_ENCRYPTION_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID:-sample_client_id}
+      GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET:-sample_client_secret}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-development_webhook_secret_key_123456}
+      AI_GEMINI_API_KEY: ${AI_GEMINI_API_KEY:-}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_OLLAMA_BASE_URL: http://ollama:11434
+    networks:
+      - aicode-network
+
+  # ==========================================
+  # React / Vite / Nginx Frontend Service
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aicode-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - aicode-network
+
+  # ==========================================
+  # Optional: Ollama Local Inference Engine
+  # ==========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aicode-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - aicode-network
+
+volumes:
+  mysql_data:
+    driver: local
+  ollama_models:
+    driver: local
+
+networks:
+  aicode-network:
+    driver: bridge

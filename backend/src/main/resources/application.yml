@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: ai-code-reviewer
+  profiles:
+    active: dev
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+
+app:
+  jwt:
+    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    access-token-expiration-ms: 86400000 # 24 hours
+    refresh-token-expiration-ms: 604800000 # 7 days
+  security:
+    encryption-key: 5v8x/A?D(G+KbPeShVmYq3t6w9z$B&E)
+  github:
+    app-id: "104291"
+    app-name: "reviewai-code-reviewer"
+    webhook-secret: "development_github_webhook_secret_hmac256"
+  ai:
+    default-provider: "GEMINI"
+    gemini:
+      model: "gemini-2.0-flash"
+      api-key: "${GEMINI_API_KEY:}"
+    openai:
+      model: "gpt-4o"
+      api-key: "${OPENAI_API_KEY:}"
+    ollama:
+      base-url: "http://localhost:11434"
+      model: "deepseek-coder:6.7b"

@@ -36,45 +36,18 @@ import {
 export const DashboardPage: React.FC = () => {
   const { data: stats, isLoading, refetch } = useGetDashboardStatsQuery();
 
-  // Realistic fallback metrics if backend has zero or initial seed
   const displayStats = stats || {
-    totalRepositories: 8,
-    totalPullRequests: 42,
-    totalReviews: 89,
-    totalIssuesDetected: 147,
-    criticalVulnerabilities: 6,
-    avgQualityScore: 84,
-    avgReviewDurationSeconds: 18,
-    issuesBySeverity: [
-      { severity: 'CRITICAL', count: 6 },
-      { severity: 'HIGH', count: 24 },
-      { severity: 'MEDIUM', count: 48 },
-      { severity: 'LOW', count: 51 },
-      { severity: 'INFO', count: 18 },
-    ],
-    issuesByCategory: [
-      { category: 'BUG', count: 38 },
-      { category: 'SECURITY', count: 26 },
-      { category: 'PERFORMANCE', count: 31 },
-      { category: 'CODE_QUALITY', count: 29 },
-      { category: 'ARCHITECTURE', count: 12 },
-      { category: 'TESTING', count: 11 },
-    ],
-    reviewsTrend: [
-      { date: 'Nov 11', reviewsCount: 8, issuesCount: 14 },
-      { date: 'Nov 12', reviewsCount: 12, issuesCount: 22 },
-      { date: 'Nov 13', reviewsCount: 16, issuesCount: 29 },
-      { date: 'Nov 14', reviewsCount: 10, issuesCount: 19 },
-      { date: 'Nov 15', reviewsCount: 19, issuesCount: 31 },
-      { date: 'Nov 16', reviewsCount: 14, issuesCount: 20 },
-      { date: 'Nov 17', reviewsCount: 10, issuesCount: 12 },
-    ],
-    qualityByRepository: [
-      { repoName: 'api-gateway', qualityScore: 92, issueCount: 8 },
-      { repoName: 'auth-service', qualityScore: 88, issueCount: 14 },
-      { repoName: 'payment-service', qualityScore: 78, issueCount: 32 },
-      { repoName: 'frontend-web', qualityScore: 86, issueCount: 21 },
-    ],
+    totalRepositories: 0,
+    totalPullRequests: 0,
+    totalReviews: 0,
+    totalIssuesDetected: 0,
+    criticalVulnerabilities: 0,
+    avgQualityScore: 0,
+    avgReviewDurationSeconds: 0,
+    issuesBySeverity: [],
+    issuesByCategory: [],
+    reviewsTrend: [],
+    qualityByRepository: [],
   };
 
   const SEVERITY_COLORS: Record<string, string> = {
@@ -118,6 +91,32 @@ export const DashboardPage: React.FC = () => {
           </NavLink>
         </div>
       </div>
+
+      {/* Onboarding Banner when no repos connected */}
+      {displayStats.totalRepositories === 0 && !isLoading && (
+        <Card className="p-6 border-indigo-500/30 bg-indigo-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" /> Welcome to AI Code Reviewer
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+              Connect your real GitHub repositories to start receiving automated AI reviews, security vulnerability scanning, and code quality scoring on every pull request.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <NavLink to="/repositories">
+              <Button variant="primary" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+                Connect Repository
+              </Button>
+            </NavLink>
+            <NavLink to="/settings/github">
+              <Button variant="outline" size="sm">
+                Configure GitHub App
+              </Button>
+            </NavLink>
+          </div>
+        </Card>
+      )}
 
       {/* Summary KPI Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">

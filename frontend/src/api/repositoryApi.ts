@@ -44,6 +44,13 @@ export const repositoryApi = api.injectEndpoints({
       }),
       invalidatesTags: ['Repository'],
     }),
+    syncRepository: builder.mutation<{ status: string; count: number }, string>({
+      query: (id) => ({
+        url: `/repositories/${id}/sync`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Repository', 'PullRequest', 'Review', 'Finding'],
+    }),
   }),
 });
 
@@ -62,6 +69,13 @@ export const pullRequestApi = api.injectEndpoints({
     }),
     getPullRequestFiles: builder.query<PullRequestFile[], string>({
       query: (prId) => `/pull-requests/${prId}/files`,
+    }),
+    syncPullRequest: builder.mutation<{ status: string }, string>({
+      query: (id) => ({
+        url: `/pull-requests/${id}/sync`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['PullRequest', 'Review', 'Finding'],
     }),
     triggerReview: builder.mutation<AIReviewDetail, { prId: string; mode?: string }>({
       query: ({ prId, mode }) => ({
@@ -144,12 +158,14 @@ export const {
   useUpdateRepositoryMutation,
   useDeleteRepositoryMutation,
   useSyncGithubRepositoriesMutation,
+  useSyncRepositoryMutation,
 } = repositoryApi;
 
 export const {
   useGetPullRequestsQuery,
   useGetPullRequestByIdQuery,
   useGetPullRequestFilesQuery,
+  useSyncPullRequestMutation,
   useTriggerReviewMutation,
   useChatWithPrMutation,
 } = pullRequestApi;

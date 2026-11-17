@@ -26,7 +26,17 @@ export const settingsApi = api.injectEndpoints({
       }),
     }),
     getGithubAppConfig: builder.query<
-      { appId: string; appName: string; installUrl: string; webhookUrl: string; isConfigured: boolean },
+      {
+        appId?: string;
+        appName?: string;
+        clientId?: string;
+        hasClientSecret?: boolean;
+        hasToken?: boolean;
+        webhookSecretConfigured?: boolean;
+        installUrl?: string;
+        webhookUrl?: string;
+        isConfigured?: boolean;
+      },
       void
     >({
       query: () => '/settings/github-app',

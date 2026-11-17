@@ -13,6 +13,7 @@ import {
   ChevronUp,
   FolderGit2,
   GitPullRequest,
+  ShieldAlert,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -26,9 +27,9 @@ export const FindingsPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [expandedId, setExpandedId] = useState<string | null>('f-1');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const { data: findings, refetch } = useGetFindingsQuery({
+  const { data: findings, isLoading, refetch } = useGetFindingsQuery({
     severity: severityFilter === 'ALL' ? undefined : severityFilter,
     category: categoryFilter === 'ALL' ? undefined : categoryFilter,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
@@ -37,78 +38,7 @@ export const FindingsPage: React.FC = () => {
 
   const [updateFindingStatus] = useUpdateFindingStatusMutation();
 
-  const fallbackFindings: ReviewFinding[] = [
-    {
-      id: 'f-1',
-      reviewId: 'rev-1',
-      repositoryId: 'repo-1',
-      pullRequestId: 'pr-1',
-      filePath: 'src/main/java/com/aicode/security/RefreshTokenService.java',
-      lineNumber: 48,
-      title: 'Potential Race Condition in Token Rotation Validation',
-      description: 'Concurrent requests with the same refresh token may bypass the revocation check due to missing lock.',
-      severity: 'HIGH',
-      category: 'SECURITY',
-      technicalExplanation: 'Parallel HTTP requests can read revoked = false before the transaction updates and commits.',
-      whyItMatters: 'Allows session hijacking.',
-      potentialImpact: 'Authentication compromise.',
-      recommendedSolution: 'Apply pessimistic write lock or unique constraint.',
-      originalCodeSnippet: 'Token token = tokenRepo.findByToken(rawToken);',
-      correctedCodeSnippet: 'Token token = tokenRepo.findByTokenWithLock(rawToken);',
-      confidenceScore: 0.94,
-      status: 'OPEN',
-      commentsCount: 2,
-      createdAt: '2026-11-17T08:45:00Z',
-      updatedAt: '2026-11-17T08:45:00Z',
-    },
-    {
-      id: 'f-2',
-      reviewId: 'rev-2',
-      repositoryId: 'repo-1',
-      pullRequestId: 'pr-2',
-      filePath: 'src/main/java/com/aicode/controller/UserController.java',
-      lineNumber: 112,
-      title: 'Unnecessary N+1 Query in User Roles Serializer',
-      description: 'Looping over collection invokes separate SELECT query per item.',
-      severity: 'MEDIUM',
-      category: 'PERFORMANCE',
-      technicalExplanation: 'Calling `user.getRoles()` inside the loop triggers lazy proxy initialization.',
-      whyItMatters: 'Slows endpoint response time significantly under high load.',
-      potentialImpact: 'High database latency.',
-      recommendedSolution: 'Use `@EntityGraph(attributePaths = {"roles"})` or JOIN FETCH in repository.',
-      correctedCodeSnippet: '@Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id IN :ids")\nList<User> findAllWithRoles(@Param("ids") List<Long> ids);',
-      confidenceScore: 0.91,
-      status: 'RESOLVED',
-      commentsCount: 1,
-      createdAt: '2026-11-16T14:30:00Z',
-      updatedAt: '2026-11-16T16:00:00Z',
-    },
-    {
-      id: 'f-3',
-      reviewId: 'rev-3',
-      repositoryId: 'repo-2',
-      pullRequestId: 'pr-3',
-      filePath: 'src/main/java/com/aicode/service/WebhookService.java',
-      lineNumber: 64,
-      title: 'Insecure String Comparison on Webhook Signature (Timing Attack)',
-      description: 'Using `String.equals()` leaks timing information when validating cryptographic HMAC signature.',
-      severity: 'CRITICAL',
-      category: 'SECURITY',
-      technicalExplanation: 'Standard string equality returns early upon the first mismatched byte.',
-      whyItMatters: 'Attacker can deduce valid signature byte-by-byte via timing differences.',
-      potentialImpact: 'Forging webhook events from unauthorized sources.',
-      recommendedSolution: 'Use `MessageDigest.isEqual(expectedBytes, actualBytes)` which executes in constant time.',
-      originalCodeSnippet: 'if (expectedSignature.equals(actualSignature))',
-      correctedCodeSnippet: 'if (MessageDigest.isEqual(expectedSignature.getBytes(StandardCharsets.UTF_8), actualSignature.getBytes(StandardCharsets.UTF_8)))',
-      confidenceScore: 0.99,
-      status: 'OPEN',
-      commentsCount: 3,
-      createdAt: '2026-11-15T12:00:00Z',
-      updatedAt: '2026-11-15T12:00:00Z',
-    },
-  ];
-
-  const items = findings && findings.length > 0 ? findings : fallbackFindings;
+  const items = findings || [];
 
   const handleStatusChange = async (findingId: string, status: FindingStatus) => {
     try {
@@ -184,6 +114,19 @@ export const FindingsPage: React.FC = () => {
           </Select>
         </div>
       </div>
+
+      {/* Empty State */}
+      {items.length === 0 && !isLoading && (
+        <Card className="p-12 text-center flex flex-col items-center justify-center border-dashed border-slate-800">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">No Issues Detected</h3>
+          <p className="text-sm text-slate-400 max-w-md mt-1">
+            All pull request reviews are clean, or no pull requests have been analyzed yet.
+          </p>
+        </Card>
+      )}
 
       {/* Findings List */}
       <div className="space-y-4">

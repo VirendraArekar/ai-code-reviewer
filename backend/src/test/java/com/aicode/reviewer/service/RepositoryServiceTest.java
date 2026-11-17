@@ -40,6 +40,9 @@ class RepositoryServiceTest {
     @Mock
     private ReviewFindingRepository reviewFindingRepository;
 
+    @Mock
+    private GitHubService gitHubService;
+
     @InjectMocks
     private RepositoryService repositoryService;
 

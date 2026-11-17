@@ -4,140 +4,43 @@ import {
   FolderGit2,
   Plus,
   Search,
-  RefreshCw,
-  Sliders,
-  CheckCircle2,
-  XCircle,
   ExternalLink,
-  ChevronRight,
-  GitBranch,
   Shield,
-  Sparkles,
+  Bot,
+  Sliders,
+  ChevronRight,
+  GitPullRequest,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
 } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
 import {
   useGetRepositoriesQuery,
   useCreateRepositoryMutation,
-  useSyncGithubRepositoriesMutation,
+  useSyncRepositoryMutation,
 } from '@/api/repositoryApi';
 import { Repository } from '@/types';
 
 export const RepositoriesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
-  const [newRepoName, setNewRepoName] = useState('');
-  const [newRepoUrl, setNewRepoUrl] = useState('');
+  const [newRepoInput, setNewRepoInput] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<'GEMINI' | 'OPENAI' | 'OLLAMA'>('GEMINI');
+  const [selectedMode, setSelectedMode] = useState<string>('STANDARD');
 
   const { data: repositories, isLoading, refetch } = useGetRepositoriesQuery({
     search: searchQuery,
   });
   const [createRepository, { isLoading: isCreating }] = useCreateRepositoryMutation();
-  const [syncGithub, { isLoading: isSyncing }] = useSyncGithubRepositoriesMutation();
+  const [syncRepository, { isLoading: isSyncing }] = useSyncRepositoryMutation();
+  const [syncingRepoId, setSyncingRepoId] = useState<string | null>(null);
 
-  const fallbackRepos: Repository[] = [
-    {
-      id: 'repo-1',
-      organizationId: 'org-1',
-      githubRepoId: 101,
-      name: 'api-gateway',
-      fullName: 'acme/api-gateway',
-      ownerLogin: 'acme',
-      defaultBranch: 'main',
-      privateRepo: true,
-      htmlUrl: 'https://github.com/acme/api-gateway',
-      primaryLanguage: 'Java',
-      autoReviewEnabled: true,
-      inlineCommentsEnabled: true,
-      reviewMode: 'DEEP',
-      minSeverity: 'MEDIUM',
-      aiProvider: 'GEMINI',
-      aiModel: 'gemini-2.0-flash',
-      maxDiffSizeKb: 500,
-      openPullRequestCount: 4,
-      totalFindingsCount: 18,
-      avgQualityScore: 92,
-      createdAt: '2026-01-15T10:00:00Z',
-      updatedAt: '2026-11-17T09:30:00Z',
-    },
-    {
-      id: 'repo-2',
-      organizationId: 'org-1',
-      githubRepoId: 102,
-      name: 'auth-service',
-      fullName: 'acme/auth-service',
-      ownerLogin: 'acme',
-      defaultBranch: 'main',
-      privateRepo: true,
-      htmlUrl: 'https://github.com/acme/auth-service',
-      primaryLanguage: 'TypeScript',
-      autoReviewEnabled: true,
-      inlineCommentsEnabled: true,
-      reviewMode: 'SECURITY_FOCUSED',
-      minSeverity: 'LOW',
-      aiProvider: 'OPENAI',
-      aiModel: 'gpt-4o',
-      maxDiffSizeKb: 800,
-      openPullRequestCount: 2,
-      totalFindingsCount: 32,
-      avgQualityScore: 88,
-      createdAt: '2026-02-10T12:00:00Z',
-      updatedAt: '2026-11-17T08:00:00Z',
-    },
-    {
-      id: 'repo-3',
-      organizationId: 'org-1',
-      githubRepoId: 103,
-      name: 'payment-service',
-      fullName: 'acme/payment-service',
-      ownerLogin: 'acme',
-      defaultBranch: 'main',
-      privateRepo: true,
-      htmlUrl: 'https://github.com/acme/payment-service',
-      primaryLanguage: 'Go',
-      autoReviewEnabled: true,
-      inlineCommentsEnabled: false,
-      reviewMode: 'STANDARD',
-      minSeverity: 'HIGH',
-      aiProvider: 'GEMINI',
-      aiModel: 'gemini-2.0-flash',
-      maxDiffSizeKb: 600,
-      openPullRequestCount: 1,
-      totalFindingsCount: 12,
-      avgQualityScore: 78,
-      createdAt: '2026-03-01T15:00:00Z',
-      updatedAt: '2026-11-16T14:20:00Z',
-    },
-    {
-      id: 'repo-4',
-      organizationId: 'org-1',
-      githubRepoId: 104,
-      name: 'frontend-web',
-      fullName: 'acme/frontend-web',
-      ownerLogin: 'acme',
-      defaultBranch: 'main',
-      privateRepo: false,
-      htmlUrl: 'https://github.com/acme/frontend-web',
-      primaryLanguage: 'TypeScript',
-      autoReviewEnabled: true,
-      inlineCommentsEnabled: true,
-      reviewMode: 'PERFORMANCE_FOCUSED',
-      minSeverity: 'MEDIUM',
-      aiProvider: 'OPENAI',
-      aiModel: 'gpt-4o-mini',
-      maxDiffSizeKb: 1000,
-      openPullRequestCount: 5,
-      totalFindingsCount: 24,
-      avgQualityScore: 86,
-      createdAt: '2026-04-12T09:00:00Z',
-      updatedAt: '2026-11-17T06:45:00Z',
-    },
-  ];
+  const repoList: Repository[] = repositories || [];
 
-  const repoList = repositories && repositories.length > 0 ? repositories : fallbackRepos;
   const filteredRepos = repoList.filter(
     (r) =>
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -147,26 +50,50 @@ export const RepositoriesPage: React.FC = () => {
 
   const handleCreateRepo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRepoName) return;
+    if (!newRepoInput.trim()) return;
+
+    let input = newRepoInput.trim();
+    if (input.startsWith('https://github.com/')) {
+      input = input.replace('https://github.com/', '');
+    }
+    if (input.endsWith('.git')) {
+      input = input.substring(0, input.length - 4);
+    }
+
+    const parts = input.split('/');
+    const repoName = parts.length > 1 ? parts[1] : parts[0];
+    const fullName = parts.length > 1 ? input : `workspace/${repoName}`;
+
     try {
       await createRepository({
-        name: newRepoName,
-        fullName: `acme/${newRepoName}`,
-        htmlUrl: newRepoUrl || `https://github.com/acme/${newRepoName}`,
+        name: repoName,
+        fullName: fullName,
+        htmlUrl: `https://github.com/${fullName}`,
         defaultBranch: 'main',
         autoReviewEnabled: true,
         inlineCommentsEnabled: true,
-        reviewMode: 'STANDARD',
+        reviewMode: selectedMode as any,
         minSeverity: 'MEDIUM',
-        aiProvider: 'GEMINI',
-        aiModel: 'gemini-2.0-flash',
+        aiProvider: selectedProvider,
+        aiModel: selectedProvider === 'GEMINI' ? 'gemini-2.0-flash' : selectedProvider === 'OPENAI' ? 'gpt-4o' : 'deepseek-coder:6.7b',
       }).unwrap();
       setIsConnectModalOpen(false);
-      setNewRepoName('');
-      setNewRepoUrl('');
+      setNewRepoInput('');
       refetch();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to connect repository', err);
+    }
+  };
+
+  const handleSyncRepo = async (repoId: string) => {
+    try {
+      setSyncingRepoId(repoId);
+      await syncRepository(repoId).unwrap();
+      refetch();
+    } catch (err) {
+      console.error('Sync failed', err);
+    } finally {
+      setSyncingRepoId(null);
     }
   };
 
@@ -179,7 +106,7 @@ export const RepositoriesPage: React.FC = () => {
             Connected Repositories <FolderGit2 className="w-5 h-5 text-indigo-400" />
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Manage repository review policies, AI configurations, and automatic webhook reviews
+            Manage repository review policies, AI configurations, and pull request synchronization
           </p>
         </div>
 
@@ -187,11 +114,10 @@ export const RepositoriesPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => syncGithub()}
-            isLoading={isSyncing}
+            onClick={() => refetch()}
             leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            Sync GitHub
+            Refresh
           </Button>
           <Button
             variant="primary"
@@ -208,13 +134,40 @@ export const RepositoriesPage: React.FC = () => {
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Input
-            placeholder="Search by repository name, language, or owner..."
+            placeholder="Search by repository name, owner, or language..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-slate-400" />}
           />
         </div>
       </div>
+
+      {/* Empty State */}
+      {filteredRepos.length === 0 && !isLoading && (
+        <Card className="p-12 text-center flex flex-col items-center justify-center border-dashed border-slate-800">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <FolderGit2 className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">No Repositories Connected</h3>
+          <p className="text-sm text-slate-400 max-w-md mt-1 mb-6">
+            Connect your GitHub repository to enable autonomous AI code reviews, detect security vulnerabilities, and sync pull requests.
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="primary"
+              onClick={() => setIsConnectModalOpen(true)}
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              Connect GitHub Repository
+            </Button>
+            <NavLink to="/settings/github">
+              <Button variant="outline" leftIcon={<ExternalLink className="w-4 h-4" />}>
+                Configure GitHub App
+              </Button>
+            </NavLink>
+          </div>
+        </Card>
+      )}
 
       {/* Repository Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,25 +201,23 @@ export const RepositoriesPage: React.FC = () => {
                       <CheckCircle2 className="w-3 h-3" /> Auto Review
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-semibold uppercase">
-                      Paused
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-semibold uppercase">
+                      Manual Only
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Badges / Tech details */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {repo.primaryLanguage && (
-                  <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 font-medium">
-                    {repo.primaryLanguage}
-                  </span>
-                )}
-                <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+              {/* Badges / Meta Info */}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <span className="px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/50 text-slate-300">
+                  {repo.primaryLanguage || 'Java'}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
                   {repo.reviewMode}
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono text-[11px]">
-                  {repo.aiProvider}: {repo.aiModel}
+                <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  {repo.aiProvider} • {repo.aiModel}
                 </span>
               </div>
             </div>
@@ -274,26 +225,33 @@ export const RepositoriesPage: React.FC = () => {
             {/* Bottom Metrics Bar */}
             <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
               <div className="flex items-center gap-4">
-                <span>
-                  <strong className="text-white font-mono">{repo.openPullRequestCount}</strong> open PRs
-                </span>
-                <span>
-                  <strong className="text-rose-400 font-mono">{repo.totalFindingsCount}</strong> findings
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <GitPullRequest className="w-3.5 h-3.5 text-blue-400" />
+                  <span>
+                    <strong className="text-white">{repo.openPullRequestCount}</strong> open PRs
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    <strong className="text-white">{repo.totalFindingsCount}</strong> issues
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {repo.avgQualityScore && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px]">Health:</span>
-                    <span className="font-mono font-bold text-emerald-400">
-                      {repo.avgQualityScore}%
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  isLoading={syncingRepoId === repo.id}
+                  onClick={() => handleSyncRepo(repo.id)}
+                  leftIcon={<RefreshCw className="w-3 h-3" />}
+                >
+                  Sync PRs
+                </Button>
                 <NavLink to={`/repositories/${repo.id}`}>
-                  <Button variant="ghost" size="sm">
-                    Configure
+                  <Button variant="secondary" size="sm" rightIcon={<ChevronRight className="w-3 h-3" />}>
+                    Settings
                   </Button>
                 </NavLink>
               </div>
@@ -302,47 +260,98 @@ export const RepositoriesPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Connect Modal */}
-      <Modal
-        isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
-        title="Connect New GitHub Repository"
-        description="Add a repository to enable continuous automated pull request scanning"
-      >
-        <form onSubmit={handleCreateRepo} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              Repository Name
-            </label>
-            <Input
-              placeholder="e.g. billing-microservice"
-              value={newRepoName}
-              onChange={(e) => setNewRepoName(e.target.value)}
-              required
-            />
-          </div>
+      {/* Connect Repository Modal */}
+      {isConnectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                Connect GitHub Repository <FolderGit2 className="w-5 h-5 text-indigo-400" />
+              </h3>
+              <button
+                onClick={() => setIsConnectModalOpen(false)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
-              GitHub URL (optional)
-            </label>
-            <Input
-              placeholder="https://github.com/acme/billing-microservice"
-              value={newRepoUrl}
-              onChange={(e) => setNewRepoUrl(e.target.value)}
-            />
-          </div>
+            <form onSubmit={handleCreateRepo} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  GitHub Repository (URL or owner/repo)
+                </label>
+                <Input
+                  required
+                  placeholder="e.g. VirendraArekar/ai-code-reviewer or https://github.com/..."
+                  value={newRepoInput}
+                  onChange={(e) => setNewRepoInput(e.target.value)}
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Metadata, default branch, language, and open PRs will be synced from GitHub automatically.
+                </p>
+              </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-            <Button variant="ghost" type="button" onClick={() => setIsConnectModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" isLoading={isCreating}>
-              Connect & Enable Auto-Review
-            </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    AI Review Provider
+                  </label>
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="GEMINI">Google Gemini (Flash 2.0)</option>
+                    <option value="OPENAI">OpenAI (GPT-4o)</option>
+                    <option value="OLLAMA">Ollama (Local LLM)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Review Mode
+                  </label>
+                  <select
+                    value={selectedMode}
+                    onChange={(e) => setSelectedMode(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="STANDARD">Standard Review</option>
+                    <option value="DEEP">Deep Review</option>
+                    <option value="SECURITY_FOCUSED">Security-Focused</option>
+                    <option value="PERFORMANCE_FOCUSED">Performance-Focused</option>
+                    <option value="QUICK">Quick Review</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
+                💡 ReviewAI will immediately scan the repository for open pull requests and execute the configured AI review engine on all active diffs.
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsConnectModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isCreating}
+                  leftIcon={<Plus className="w-4 h-4" />}
+                >
+                  Connect & Sync
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };

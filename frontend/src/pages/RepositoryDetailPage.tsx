@@ -1,89 +1,112 @@
-import React, { useState } from 'react';
-import { useParams, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, NavLink } from 'react-router-dom';
 import {
   FolderGit2,
-  GitPullRequest,
-  CheckCircle2,
-  Sliders,
-  Cpu,
-  Trash2,
   ArrowLeft,
   ExternalLink,
   Shield,
+  Bot,
+  Sliders,
   Save,
+  Trash2,
+  CheckCircle2,
   Clock,
-  Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
-import { ScoreGauge } from '@/components/ui/ScoreGauge';
+import { Switch } from '@/components/ui/Switch';
+import { Badge } from '@/components/ui/Badge';
 import {
   useGetRepositoryByIdQuery,
   useUpdateRepositoryMutation,
   useDeleteRepositoryMutation,
+  useSyncRepositoryMutation,
 } from '@/api/repositoryApi';
-import { Repository, ReviewMode, FindingSeverity, AIProvider } from '@/types';
+import { Repository } from '@/types';
 
 export const RepositoryDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: repository, refetch } = useGetRepositoryByIdQuery(id || '');
+  const { data: repository, isLoading, refetch } = useGetRepositoryByIdQuery(id || '');
   const [updateRepository, { isLoading: isSaving }] = useUpdateRepositoryMutation();
   const [deleteRepository, { isLoading: isDeleting }] = useDeleteRepositoryMutation();
+  const [syncRepository, { isLoading: isSyncing }] = useSyncRepositoryMutation();
 
-  const repo: Repository = repository || {
-    id: id || 'repo-1',
-    organizationId: 'org-1',
-    githubRepoId: 101,
-    name: 'api-gateway',
-    fullName: 'acme/api-gateway',
-    ownerLogin: 'acme',
-    defaultBranch: 'main',
-    privateRepo: true,
-    htmlUrl: 'https://github.com/acme/api-gateway',
-    primaryLanguage: 'Java',
+  const [formData, setFormData] = useState({
     autoReviewEnabled: true,
     inlineCommentsEnabled: true,
-    reviewMode: 'DEEP',
+    reviewMode: 'STANDARD',
     minSeverity: 'MEDIUM',
     aiProvider: 'GEMINI',
     aiModel: 'gemini-2.0-flash',
     maxDiffSizeKb: 500,
-    excludedPatterns: '*.min.js, package-lock.json, *.lock, dist/**',
-    customInstructions:
-      'Enforce Spring Boot best practices. Verify all endpoints authenticate with JWT. Flag any non-parameterized SQL queries.',
-    openPullRequestCount: 4,
-    totalFindingsCount: 18,
-    avgQualityScore: 92,
-    createdAt: '2026-01-15T10:00:00Z',
-    updatedAt: '2026-11-17T09:30:00Z',
-  };
-
-  const [formData, setFormData] = useState({
-    autoReviewEnabled: repo.autoReviewEnabled,
-    inlineCommentsEnabled: repo.inlineCommentsEnabled,
-    reviewMode: repo.reviewMode,
-    minSeverity: repo.minSeverity,
-    aiProvider: repo.aiProvider,
-    aiModel: repo.aiModel,
-    maxDiffSizeKb: repo.maxDiffSizeKb,
-    excludedPatterns: repo.excludedPatterns || '',
-    customInstructions: repo.customInstructions || '',
+    excludedPatterns: '',
+    customInstructions: '',
   });
 
   const [isSavedToast, setIsSavedToast] = useState(false);
+
+  useEffect(() => {
+    if (repository) {
+      setFormData({
+        autoReviewEnabled: repository.autoReviewEnabled,
+        inlineCommentsEnabled: repository.inlineCommentsEnabled,
+        reviewMode: repository.reviewMode,
+        minSeverity: repository.minSeverity,
+        aiProvider: repository.aiProvider,
+        aiModel: repository.aiModel,
+        maxDiffSizeKb: repository.maxDiffSizeKb,
+        excludedPatterns: repository.excludedPatterns || '',
+        customInstructions: repository.customInstructions || '',
+      });
+    }
+  }, [repository]);
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400">
+        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-400" />
+        <p className="text-sm">Loading repository configuration...</p>
+      </div>
+    );
+  }
+
+  if (!repository) {
+    return (
+      <Card className="p-12 text-center max-w-lg mx-auto">
+        <h3 className="text-lg font-bold text-white mb-2">Repository Not Found</h3>
+        <p className="text-sm text-slate-400 mb-6">
+          The requested repository does not exist or has been disconnected.
+        </p>
+        <NavLink to="/repositories">
+          <Button variant="primary">Back to Repositories</Button>
+        </NavLink>
+      </Card>
+    );
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
     try {
-      await updateRepository({ id, data: formData }).unwrap();
+      await updateRepository({ id, data: formData as any }).unwrap();
       setIsSavedToast(true);
       setTimeout(() => setIsSavedToast(false), 3000);
       refetch();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!id) return;
+    try {
+      await syncRepository(id).unwrap();
+      refetch();
+    } catch (err) {
+      console.error('Sync error', err);
     }
   };
 
@@ -108,243 +131,211 @@ export const RepositoryDetailPage: React.FC = () => {
           </NavLink>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              {repo.fullName}
-              {repo.privateRepo && (
+              {repository.fullName}
+              {repository.privateRepo && (
                 <span className="text-[10px] font-semibold bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">
                   Private
                 </span>
               )}
             </h1>
             <p className="text-xs text-slate-400 font-mono flex items-center gap-2 mt-0.5">
-              <span>Default Branch: {repo.defaultBranch}</span>
+              <span>Default Branch: {repository.defaultBranch}</span>
               <span>•</span>
-              <a
-                href={repo.htmlUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-400 hover:underline inline-flex items-center gap-1"
-              >
-                GitHub <ExternalLink className="w-3 h-3" />
-              </a>
+              <span>Language: {repository.primaryLanguage}</span>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <NavLink to={`/pull-requests?repoId=${repo.id}`}>
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<GitPullRequest className="w-4 h-4" />}
-            >
-              View Pull Requests ({repo.openPullRequestCount})
+          <a href={repository.htmlUrl} target="_blank" rel="noreferrer">
+            <Button variant="outline" size="sm" rightIcon={<ExternalLink className="w-3.5 h-3.5" />}>
+              GitHub
             </Button>
-          </NavLink>
+          </a>
           <Button
-            variant="danger"
+            variant="outline"
             size="sm"
-            onClick={handleDelete}
-            isLoading={isDeleting}
-            leftIcon={<Trash2 className="w-4 h-4" />}
+            onClick={handleSync}
+            isLoading={isSyncing}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            Disconnect
+            Sync PRs
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSave}
+            isLoading={isSaving}
+            leftIcon={<Save className="w-3.5 h-3.5" />}
+          >
+            Save Settings
           </Button>
         </div>
       </div>
 
       {isSavedToast && (
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4" /> Repository settings updated successfully!
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          Repository review settings updated successfully!
         </div>
       )}
 
       {/* Main Settings Form */}
       <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Automation & AI Engine */}
         <div className="lg:col-span-2 space-y-6">
-          {/* General Review Configuration */}
-          <Card className="p-6 space-y-5">
-            <CardTitle>
-              <Sliders className="w-5 h-5 text-indigo-400" /> Review Engine Settings
-            </CardTitle>
+          <Card className="p-6 space-y-6">
+            <CardTitle>Autonomous AI Review Engine</CardTitle>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div>
+                  <h4 className="text-sm font-semibold text-white">Enable Automated Reviews</h4>
+                  <p className="text-xs text-slate-400">
+                    Automatically trigger AI analysis when a pull request is opened or updated
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.autoReviewEnabled}
+                  onChange={(v) => setFormData({ ...formData, autoReviewEnabled: v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div>
+                  <h4 className="text-sm font-semibold text-white">Publish Inline GitHub Comments</h4>
+                  <p className="text-xs text-slate-400">
+                    Post AI review findings and suggested fixes directly to GitHub Pull Request
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.inlineCommentsEnabled}
+                  onChange={(v) => setFormData({ ...formData, inlineCommentsEnabled: v })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Review Depth Mode
                 </label>
                 <Select
                   value={formData.reviewMode}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reviewMode: e.target.value as ReviewMode })
-                  }
+                  onChange={(e) => setFormData({ ...formData, reviewMode: e.target.value as any })}
                 >
-                  <option value="QUICK">Quick Review (Fastest, summary + high risks)</option>
-                  <option value="STANDARD">Standard Review (Balanced AST & LLM check)</option>
-                  <option value="DEEP">Deep Review (Complete 6-pillar exhaustive audit)</option>
-                  <option value="SECURITY_FOCUSED">Security Focused (OWASP & CVE priority)</option>
-                  <option value="PERFORMANCE_FOCUSED">Performance Focused (Algorithmic & N+1)</option>
-                  <option value="ARCHITECTURE">Architecture Review (SOLID & Boundaries)</option>
-                  <option value="TESTING">Testing Review (Unit test completeness)</option>
+                  <option value="QUICK">Quick Review (Lightweight syntax & smells)</option>
+                  <option value="STANDARD">Standard Review (Comprehensive checks)</option>
+                  <option value="DEEP">Deep Review (Complete multi-agent AST reasoning)</option>
+                  <option value="SECURITY_FOCUSED">Security-Focused (OWASP & threat model)</option>
+                  <option value="PERFORMANCE_FOCUSED">Performance-Focused (N+1 queries & memory)</option>
                 </Select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Minimum Severity Threshold
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Minimum Reporting Severity
                 </label>
                 <Select
                   value={formData.minSeverity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, minSeverity: e.target.value as FindingSeverity })
-                  }
+                  onChange={(e) => setFormData({ ...formData, minSeverity: e.target.value as any })}
                 >
-                  <option value="INFO">INFO (Report everything)</option>
-                  <option value="LOW">LOW and higher</option>
-                  <option value="MEDIUM">MEDIUM and higher (Recommended)</option>
-                  <option value="HIGH">HIGH and higher</option>
-                  <option value="CRITICAL">CRITICAL only</option>
+                  <option value="INFO">INFO & Above (Report everything)</option>
+                  <option value="LOW">LOW & Above (Smells, naming, info)</option>
+                  <option value="MEDIUM">MEDIUM & Above (Recommended default)</option>
+                  <option value="HIGH">HIGH & CRITICAL Only</option>
+                  <option value="CRITICAL">CRITICAL Only (Blockers)</option>
                 </Select>
               </div>
             </div>
 
-            {/* Toggles */}
-            <div className="space-y-3 pt-2">
-              <label className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer">
-                <div>
-                  <span className="text-sm font-semibold text-white block">
-                    Automatic Webhook Reviews
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Automatically trigger review jobs when PRs are opened or synchronized
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={formData.autoReviewEnabled}
-                  onChange={(e) =>
-                    setFormData({ ...formData, autoReviewEnabled: e.target.checked })
-                  }
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 cursor-pointer">
-                <div>
-                  <span className="text-sm font-semibold text-white block">
-                    Publish Inline GitHub Comments
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Post AI finding annotations directly on specific changed lines in the PR
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={formData.inlineCommentsEnabled}
-                  onChange={(e) =>
-                    setFormData({ ...formData, inlineCommentsEnabled: e.target.checked })
-                  }
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
-                />
-              </label>
-            </div>
-          </Card>
-
-          {/* AI Model & Custom Prompt Rules */}
-          <Card className="p-6 space-y-5">
-            <CardTitle>
-              <Cpu className="w-5 h-5 text-purple-400" /> AI Provider & Repository Rules
-            </CardTitle>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   AI Provider
                 </label>
                 <Select
                   value={formData.aiProvider}
-                  onChange={(e) =>
-                    setFormData({ ...formData, aiProvider: e.target.value as AIProvider })
-                  }
+                  onChange={(e) => setFormData({ ...formData, aiProvider: e.target.value as any })}
                 >
                   <option value="GEMINI">Google Gemini</option>
                   <option value="OPENAI">OpenAI</option>
-                  <option value="OLLAMA">Ollama (Local / Self-hosted)</option>
+                  <option value="OLLAMA">Ollama (Local LLM)</option>
                 </Select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Model Identifier
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  AI Model Name
                 </label>
                 <Input
                   value={formData.aiModel}
                   onChange={(e) => setFormData({ ...formData, aiModel: e.target.value })}
-                  placeholder="e.g. gemini-2.0-flash or gpt-4o"
+                  placeholder="e.g. gemini-2.0-flash, gpt-4o"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Excluded File Glob Patterns
-              </label>
-              <Input
-                value={formData.excludedPatterns}
-                onChange={(e) => setFormData({ ...formData, excludedPatterns: e.target.value })}
-                placeholder="*.min.js, *.lock, package-lock.json, dist/**, target/**"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Comma-separated file patterns to skip during AI review
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Custom Repository Coding Guidelines & Prompt Instructions
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Custom Repository Coding Standards & Instructions
               </label>
               <textarea
                 rows={4}
                 value={formData.customInstructions}
                 onChange={(e) => setFormData({ ...formData, customInstructions: e.target.value })}
-                className="w-full rounded-xl bg-slate-950/80 border border-slate-700/80 p-3 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                placeholder="e.g. We require immutability in all entity models. Do not allow raw SQL queries. Enforce strict null-safety."
+                placeholder="e.g. Enforce immutability. Require Javadoc on all public methods. Prohibit raw SQL queries."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
               />
-            </div>
-
-            <div className="flex items-center justify-end pt-3 border-t border-slate-800">
-              <Button
-                type="submit"
-                variant="primary"
-                isLoading={isSaving}
-                leftIcon={<Save className="w-4 h-4" />}
-              >
-                Save Changes
-              </Button>
+              <p className="text-[11px] text-slate-400 mt-1">
+                These rules are injected directly into the LLM system prompt for this repository.
+              </p>
             </div>
           </Card>
         </div>
 
-        {/* Right Column: Health Score Card */}
+        {/* Right Column: Repository Metadata & Danger Zone */}
         <div className="space-y-6">
-          <Card className="p-6 text-center space-y-4">
-            <CardTitle className="justify-center">Repository Quality Score</CardTitle>
-            <div className="py-4">
-              <ScoreGauge score={repo.avgQualityScore || 85} size="lg" label="Overall Code Health" />
+          <Card className="p-6 space-y-4">
+            <CardTitle>Repository Health & Stats</CardTitle>
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-800">
+                <span className="text-slate-400">Open Pull Requests:</span>
+                <span className="text-white font-bold">{repository.openPullRequestCount}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-800">
+                <span className="text-slate-400">Total Findings:</span>
+                <span className="text-white font-bold">{repository.totalFindingsCount}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-800">
+                <span className="text-slate-400">Primary Language:</span>
+                <span className="text-white font-bold">{repository.primaryLanguage}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-400">Last Review:</span>
+                <span className="text-white font-mono">
+                  {repository.lastReviewAt ? new Date(repository.lastReviewAt).toLocaleString() : 'Never'}
+                </span>
+              </div>
             </div>
-            <div className="text-xs text-slate-400 space-y-2 pt-2 border-t border-slate-800">
-              <div className="flex justify-between">
-                <span>Active Findings:</span>
-                <span className="font-mono text-white font-bold">{repo.totalFindingsCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Open PRs:</span>
-                <span className="font-mono text-white font-bold">{repo.openPullRequestCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Primary Language:</span>
-                <span className="text-indigo-400 font-semibold">{repo.primaryLanguage}</span>
-              </div>
-            </div>
+          </Card>
+
+          <Card className="p-6 border-rose-500/20 space-y-4">
+            <CardTitle className="text-rose-400">Danger Zone</CardTitle>
+            <p className="text-xs text-slate-400">
+              Disconnecting this repository will remove stored review history, pull request links, and stop automated webhook reviews.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              isLoading={isDeleting}
+              onClick={handleDelete}
+              className="w-full border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+            >
+              Disconnect Repository
+            </Button>
           </Card>
         </div>
       </form>

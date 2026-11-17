@@ -10,40 +10,7 @@ export const NotificationsPage: React.FC = () => {
   const { data: notificationsData, refetch } = useGetNotificationsQuery();
   const [markAsRead] = useMarkNotificationAsReadMutation();
 
-  const fallbackNotifications: NotificationItem[] = [
-    {
-      id: 'notif-1',
-      userId: 'u-1',
-      title: 'Review Completed for PR #42',
-      message: 'Autonomous review generated 3 findings (1 High, 2 Medium) for api-gateway.',
-      type: 'REVIEW_COMPLETED',
-      read: false,
-      actionUrl: '/pull-requests/pr-1',
-      createdAt: '2026-11-17T08:45:00Z',
-    },
-    {
-      id: 'notif-2',
-      userId: 'u-1',
-      title: 'Critical Timing Attack Vulnerability Detected',
-      message: 'PR #15 in payment-service has a critical non-constant time signature validation.',
-      type: 'CRITICAL_VULNERABILITY',
-      read: false,
-      actionUrl: '/pull-requests/pr-3',
-      createdAt: '2026-11-15T12:00:00Z',
-    },
-    {
-      id: 'notif-3',
-      userId: 'u-1',
-      title: 'Team Invitation Accepted',
-      message: 'Sarah Chen has joined the Backend Platform Squad.',
-      type: 'TEAM_INVITATION',
-      read: true,
-      actionUrl: '/teams/team-1',
-      createdAt: '2026-11-14T10:00:00Z',
-    },
-  ];
-
-  const list = notificationsData && notificationsData.length > 0 ? notificationsData : fallbackNotifications;
+  const list = notificationsData || [];
 
   const handleRead = async (id: string) => {
     try {
@@ -66,6 +33,18 @@ export const NotificationsPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {list.length === 0 && (
+        <Card className="p-12 text-center flex flex-col items-center justify-center border-dashed border-slate-800">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <Bell className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">No Notifications</h3>
+          <p className="text-sm text-slate-400 max-w-md mt-1">
+            You're all caught up! New alerts will appear here when PR reviews complete or critical vulnerabilities are flagged.
+          </p>
+        </Card>
+      )}
 
       <div className="space-y-3">
         {list.map((n) => (

@@ -29,17 +29,21 @@ app:
   security:
     encryption-key: 5v8x/A?D(G+KbPeShVmYq3t6w9z$B&E)
   github:
-    app-id: "104291"
-    app-name: "reviewai-code-reviewer"
-    webhook-secret: "development_github_webhook_secret_hmac256"
+    app-id: "${GITHUB_APP_ID:}"
+    app-name: "${GITHUB_APP_NAME:reviewai-code-reviewer}"
+    client-id: "${GITHUB_APP_CLIENT_ID:Iv23libUzilLzVgej6Ia}"
+    client-secret: "${GITHUB_APP_CLIENT_SECRET:60b56b7f5e4c2fdbb88c4545cf58ee0ed35d029d}"
+    private-key: "${GITHUB_APP_PRIVATE_KEY:}"
+    webhook-secret: "${GITHUB_WEBHOOK_SECRET:development_webhook_secret_key_123456}"
+    token: "${GITHUB_TOKEN:}"
   ai:
     default-provider: "GEMINI"
     gemini:
       model: "gemini-2.0-flash"
-      api-key: "${GEMINI_API_KEY:}"
+      api-key: "${AI_GEMINI_API_KEY:${GEMINI_API_KEY:}}"
     openai:
       model: "gpt-4o"
-      api-key: "${OPENAI_API_KEY:}"
+      api-key: "${AI_OPENAI_API_KEY:${OPENAI_API_KEY:}}"
     ollama:
-      base-url: "http://localhost:11434"
+      base-url: "${AI_OLLAMA_BASE_URL:http://localhost:11434}"
       model: "deepseek-coder:6.7b"

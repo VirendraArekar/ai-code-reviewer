@@ -40,6 +40,26 @@ export const settingsApi = api.injectEndpoints({
       void
     >({
       query: () => '/settings/github-app',
+      providesTags: ['GithubApp'],
+    }),
+    convertGithubAppCode: builder.mutation<
+      {
+        appId?: string;
+        appName?: string;
+        clientId?: string;
+        clientSecret?: string;
+        webhookSecret?: string;
+        pem?: string;
+        htmlUrl?: string;
+      },
+      { code: string }
+    >({
+      query: (body) => ({
+        url: '/settings/github-app/convert-code',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['GithubApp'],
     }),
     getTeams: builder.query<Team[], void>({
       query: () => '/teams',
@@ -79,6 +99,7 @@ export const {
   useUpdateAiProviderMutation,
   useTestAiProviderMutation,
   useGetGithubAppConfigQuery,
+  useConvertGithubAppCodeMutation,
   useGetTeamsQuery,
   useCreateTeamMutation,
   useGetNotificationsQuery,

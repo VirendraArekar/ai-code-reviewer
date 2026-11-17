@@ -64,6 +64,7 @@ export const api = createApi({
     'AIProvider',
     'AuditLog',
     'Analytics',
+    'GithubApp',
   ],
   endpoints: () => ({}),
 });

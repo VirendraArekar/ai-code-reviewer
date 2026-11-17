@@ -35,7 +35,7 @@ AI Code Reviewer supports 7 tailored review modes:
 ### 3.1 Review Results View
 Each Pull Request review contains:
 - **Quality & Security Score Gauges**: Visual circular meters rating your code health from 0 to 100.
-- **Executive Summary**: AI-generated summary of the changeset.
+- **Review Summary**: Overview of changes and suggested improvements.
 - **Unified Diff Viewer**: Side-by-side or inline code diff powered by Monaco Editor.
 - **Categorized Findings**:
   - Exact file and changed line numbers.

@@ -32,6 +32,48 @@
 
 ---
 
+## 📸 Application Screenshots
+
+### ☀️ Light Mode Screens (2 screens per line)
+
+| Dashboard Overview | Repositories Management |
+| :---: | :---: |
+| <img src="docs/images/01-dashboard-light.png" width="100%" alt="Dashboard Overview" /> | <img src="docs/images/02-repositories-light.png" width="100%" alt="Repositories Management" /> |
+
+| Pull Requests Hub | Pull Request Review & Diff |
+| :---: | :---: |
+| <img src="docs/images/03-pull-requests-light.png" width="100%" alt="Pull Requests Hub" /> | <img src="docs/images/03b-pull-request-detail-light.png" width="100%" alt="PR Review & Diff" /> |
+
+| Review Findings & Recommendations | Real-Time Analytics & Scoring |
+| :---: | :---: |
+| <img src="docs/images/04-findings-light.png" width="100%" alt="Review Findings" /> | <img src="docs/images/05-analytics-light.png" width="100%" alt="Analytics & Scoring" /> |
+
+| Engineering Teams | AI Provider Configurations |
+| :---: | :---: |
+| <img src="docs/images/06-teams-light.png" width="100%" alt="Engineering Teams" /> | <img src="docs/images/07-ai-providers-light.png" width="100%" alt="AI Provider Settings" /> |
+
+| GitHub App & Webhook Integration | Notification Center |
+| :---: | :---: |
+| <img src="docs/images/08-github-integration-light.png" width="100%" alt="GitHub Integration" /> | <img src="docs/images/09-notifications-light.png" width="100%" alt="Notification Center" /> |
+
+| Security Audit Logs | Organization Management |
+| :---: | :---: |
+| <img src="docs/images/10-audit-logs-light.png" width="100%" alt="Audit Logs" /> | <img src="docs/images/11-organization-light.png" width="100%" alt="Organization Management" /> |
+
+| Subscription & Usage Plans | |
+| :---: | :---: |
+| <img src="docs/images/12-billing-light.png" width="100%" alt="Usage & Billing Plans" /> | |
+
+---
+
+### 🌙 Dark Mode Preview (Findings Screen)
+
+| Dark Mode: Review Findings Screen |
+| :---: |
+| <img src="docs/images/findings-dark.png" width="100%" alt="Review Findings - Dark Mode" /> |
+
+---
+
 ## 🏗️ System Architecture
 
 The application adopts a modular monolith architecture with strictly defined bounded contexts:
@@ -118,34 +160,34 @@ The React development server launches at `http://localhost:5173`.
 ## 📋 Development Phases Roadmap
 
 - [x] **Phase 1**: Repository initialization and project architecture.
-- [ ] **Phase 2**: React frontend initialization and design system.
-- [ ] **Phase 3**: Spring Boot backend initialization.
-- [ ] **Phase 4**: MySQL integration and Flyway migrations.
-- [ ] **Phase 5**: Authentication and authorization.
-- [ ] **Phase 6**: User profile and onboarding.
-- [ ] **Phase 7**: GitHub OAuth integration.
-- [ ] **Phase 8**: GitHub App installation.
-- [ ] **Phase 9**: Repository management.
-- [ ] **Phase 10**: Webhook processing.
-- [ ] **Phase 11**: Pull request retrieval and diff processing.
-- [ ] **Phase 12**: AI provider abstraction.
-- [ ] **Phase 13**: AI code review engine.
-- [ ] **Phase 14**: Bug and code quality detection.
-- [ ] **Phase 15**: Security analysis.
-- [ ] **Phase 16**: Performance analysis.
-- [ ] **Phase 17**: AI findings management.
-- [ ] **Phase 18**: GitHub Checks integration.
-- [ ] **Phase 19**: Inline review comments.
-- [ ] **Phase 20**: Dashboard and analytics.
-- [ ] **Phase 21**: Findings management.
-- [ ] **Phase 22**: Team collaboration.
-- [ ] **Phase 23**: Notifications.
-- [ ] **Phase 24**: Usage and subscription management.
-- [ ] **Phase 25**: Admin dashboard and audit logs.
-- [ ] **Phase 26**: Automated testing.
-- [ ] **Phase 27**: Security hardening and optimization.
-- [ ] **Phase 28**: Docker and CI/CD.
-- [ ] **Phase 29**: Documentation and production readiness.
+- [x] **Phase 2**: React frontend initialization and design system.
+- [x] **Phase 3**: Spring Boot backend initialization.
+- [x] **Phase 4**: MySQL integration and Flyway migrations.
+- [x] **Phase 5**: Authentication and authorization.
+- [x] **Phase 6**: User profile and onboarding.
+- [x] **Phase 7**: GitHub OAuth integration.
+- [x] **Phase 8**: GitHub App installation.
+- [x] **Phase 9**: Repository management.
+- [x] **Phase 10**: Webhook processing.
+- [x] **Phase 11**: Pull request retrieval and diff processing.
+- [x] **Phase 12**: AI provider abstraction.
+- [x] **Phase 13**: AI code review engine.
+- [x] **Phase 14**: Bug and code quality detection.
+- [x] **Phase 15**: Security analysis.
+- [x] **Phase 16**: Performance analysis.
+- [x] **Phase 17**: AI findings management.
+- [x] **Phase 18**: GitHub Checks integration.
+- [x] **Phase 19**: Inline review comments.
+- [x] **Phase 20**: Dashboard and analytics.
+- [x] **Phase 21**: Findings management.
+- [x] **Phase 22**: Team collaboration.
+- [x] **Phase 23**: Notifications.
+- [x] **Phase 24**: Usage and subscription management.
+- [x] **Phase 25**: Admin dashboard and audit logs.
+- [x] **Phase 26**: Automated testing.
+- [x] **Phase 27**: Security hardening and optimization.
+- [x] **Phase 28**: Docker and CI/CD.
+- [x] **Phase 29**: Documentation and production readiness.
 
 ---
 

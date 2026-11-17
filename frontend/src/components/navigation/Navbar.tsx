@@ -20,16 +20,40 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onMobileOpen, collapsed }) => {
   const { user } = useAppSelector((state) => state.auth);
-  const [isDark, setIsDark] = React.useState(true);
+  const [isDark, setIsDark] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') return false;
+      if (saved === 'dark') return true;
+      return document.documentElement.classList.contains('dark');
+    }
+    return true;
+  });
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    if (document.documentElement.classList.contains('light')) {
+  React.useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      setIsDark(false);
+    } else {
       document.documentElement.classList.remove('light');
       document.documentElement.classList.add('dark');
+      setIsDark(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.remove('light');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
+      localStorage.setItem('theme', 'light');
     }
   };
 

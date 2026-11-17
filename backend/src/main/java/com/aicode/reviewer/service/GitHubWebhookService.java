@@ -43,7 +43,7 @@ public class GitHubWebhookService {
             PullRequestRepository pullRequestRepository,
             WebhookEventRepository webhookEventRepository,
             @Lazy AiReviewService aiReviewService,
-            GitHubService gitHubService
+            @Lazy GitHubService gitHubService
     ) {
         this.repositoryRepository = repositoryRepository;
         this.pullRequestRepository = pullRequestRepository;

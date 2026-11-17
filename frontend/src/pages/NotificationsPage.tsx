@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Bell, CheckCircle2, ShieldAlert, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { notify } from '@/lib/notify';
 import { useGetNotificationsQuery, useMarkNotificationAsReadMutation } from '@/api/settingsApi';
 import { NotificationItem } from '@/types';
 
@@ -15,9 +16,11 @@ export const NotificationsPage: React.FC = () => {
   const handleRead = async (id: string) => {
     try {
       await markAsRead(id).unwrap();
+      notify.success('Notification Dismissed', 'Marked as read.');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Action Failed', err?.data?.message || 'Could not update notification.');
     }
   };
 

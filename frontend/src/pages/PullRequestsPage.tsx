@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { notify } from '@/lib/notify';
 import { useGetPullRequestsQuery, useTriggerReviewMutation, useSyncPullRequestMutation } from '@/api/repositoryApi';
 import { PullRequest } from '@/types';
 
@@ -42,10 +43,13 @@ export const PullRequestsPage: React.FC = () => {
 
   const handleTriggerReview = async (prId: string) => {
     try {
+      notify.info('AI Review Started', 'Analyzing code diff, checking security vulnerabilities, and evaluating best practices...');
       await triggerReview({ prId, mode: 'STANDARD' }).unwrap();
+      notify.success('AI Review Complete', 'Pull request review analysis has finished successfully.');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Review Failed', err?.data?.message || 'Failed to complete AI review. Check AI provider settings.');
     }
   };
 
@@ -53,9 +57,11 @@ export const PullRequestsPage: React.FC = () => {
     try {
       setSyncingPrId(prId);
       await syncPullRequest(prId).unwrap();
+      notify.success('Pull Request Synced', 'Fetched latest commits and changed files from GitHub.');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Sync Failed', err?.data?.message || 'Failed to sync pull request diff.');
     } finally {
       setSyncingPrId(null);
     }

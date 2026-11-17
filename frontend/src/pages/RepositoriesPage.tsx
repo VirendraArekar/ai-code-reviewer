@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   FolderGit2,
@@ -18,6 +18,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { notify } from '@/lib/notify';
 import {
   useGetRepositoriesQuery,
   useCreateRepositoryMutation,
@@ -38,6 +39,17 @@ export const RepositoriesPage: React.FC = () => {
   const [createRepository, { isLoading: isCreating }] = useCreateRepositoryMutation();
   const [syncRepository, { isLoading: isSyncing }] = useSyncRepositoryMutation();
   const [syncingRepoId, setSyncingRepoId] = useState<string | null>(null);
+
+  // Close modal when pressing Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isConnectModalOpen) {
+        setIsConnectModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isConnectModalOpen]);
 
   const repoList: Repository[] = repositories || [];
 
@@ -77,21 +89,32 @@ export const RepositoriesPage: React.FC = () => {
         aiProvider: selectedProvider,
         aiModel: selectedProvider === 'GEMINI' ? 'gemini-2.0-flash' : selectedProvider === 'OPENAI' ? 'gpt-4o' : 'deepseek-coder:6.7b',
       }).unwrap();
+
       setIsConnectModalOpen(false);
       setNewRepoInput('');
+      notify.success('Repository Connected', `${fullName} was successfully connected. Pull requests are syncing in background.`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to connect repository', err);
+      const errorMsg =
+        err?.data?.message ||
+        err?.data?.error ||
+        err?.message ||
+        'Failed to connect repository. Please verify the repository name and permissions.';
+      notify.error('Connection Failed', errorMsg);
     }
   };
 
-  const handleSyncRepo = async (repoId: string) => {
+  const handleSyncRepo = async (repoId: string, repoName?: string) => {
     try {
       setSyncingRepoId(repoId);
       await syncRepository(repoId).unwrap();
+      notify.success('Repository Synced', `${repoName || 'Repository'} pull requests and diffs have been synchronized.`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Sync failed', err);
+      const errorMsg = err?.data?.message || err?.data?.error || 'Failed to sync pull requests from GitHub.';
+      notify.error('Sync Failed', errorMsg);
     } finally {
       setSyncingRepoId(null);
     }
@@ -244,7 +267,7 @@ export const RepositoriesPage: React.FC = () => {
                   variant="outline"
                   size="sm"
                   isLoading={syncingRepoId === repo.id}
-                  onClick={() => handleSyncRepo(repo.id)}
+                  onClick={() => handleSyncRepo(repo.id, repo.fullName)}
                   leftIcon={<RefreshCw className="w-3 h-3" />}
                 >
                   Sync PRs
@@ -262,7 +285,14 @@ export const RepositoriesPage: React.FC = () => {
 
       {/* Connect Repository Modal */}
       {isConnectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsConnectModalOpen(false);
+            }
+          }}
+        >
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">

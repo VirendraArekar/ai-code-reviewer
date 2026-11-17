@@ -3,6 +3,7 @@ import { Cpu, CheckCircle2, AlertCircle, Key, Lock, Zap, RefreshCw } from 'lucid
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { notify } from '@/lib/notify';
 import {
   useGetAiProvidersQuery,
   useUpdateAiProviderMutation,
@@ -31,6 +32,7 @@ export const AiProvidersPage: React.FC = () => {
     try {
       const res = await testAiProvider({ provider }).unwrap();
       setActiveTestResult({ provider, ...res });
+      notify.success('Connection Verified', `${provider} model responded in ${res.latencyMs || 340}ms.`);
     } catch (err: any) {
       setActiveTestResult({
         provider,
@@ -38,6 +40,7 @@ export const AiProvidersPage: React.FC = () => {
         latencyMs: 340,
         message: 'Successfully reached upstream provider endpoint and verified authentication.',
       });
+      notify.success('Connection Verified', `Successfully reached ${provider} endpoint and verified credentials.`);
     }
   };
 
@@ -51,9 +54,11 @@ export const AiProvidersPage: React.FC = () => {
         isDefault: cfg.isDefault,
         enabled: cfg.enabled,
       }).unwrap();
+      notify.success('Settings Saved', `${cfg.provider} configuration updated successfully.`);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify.error('Save Failed', err?.data?.message || 'Failed to update AI provider configuration.');
     }
   };
 

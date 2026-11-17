@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useRegisterMutation } from '@/api/authApi';
 import { useAppDispatch } from '@/store';
 import { setCredentials } from '@/store/slices/authSlice';
+import { notify } from '@/lib/notify';
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -43,11 +44,12 @@ export const RegisterPage: React.FC = () => {
     try {
       const response = await registerUser(data).unwrap();
       dispatch(setCredentials(response));
+      notify.success('Account Created', `Welcome to ReviewAI, ${data.fullName}!`);
       navigate('/onboarding');
     } catch (err: any) {
-      setErrorMessage(
-        err?.data?.message || 'Failed to create account. Please try again.'
-      );
+      const msg = err?.data?.message || 'Failed to create account. Please try again.';
+      setErrorMessage(msg);
+      notify.error('Registration Failed', msg);
     }
   };
 

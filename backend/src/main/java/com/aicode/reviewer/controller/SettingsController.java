@@ -119,11 +119,21 @@ public class SettingsController {
     public ResponseEntity<Map<String, Object>> getManifest(@RequestBody(required = false) Map<String, String> body) {
         String webhookUrl = (body != null && body.containsKey("webhookUrl"))
                 ? body.get("webhookUrl")
-                : "https://api.reviewai.dev/api/v1/webhooks/github";
+                : null;
         String callbackUrl = (body != null && body.containsKey("callbackUrl"))
                 ? body.get("callbackUrl")
                 : "http://localhost:3000/settings/github";
         return ResponseEntity.ok(gitHubService.generateAppManifest(callbackUrl, webhookUrl));
+    }
+
+    @PostMapping("/github-app/convert-code")
+    @Operation(summary = "Exchange temporary GitHub manifest code for App ID, Client Secret, and Private Key")
+    public ResponseEntity<Map<String, Object>> convertCode(@RequestBody Map<String, String> body) {
+        String code = body != null ? body.get("code") : null;
+        if (code == null || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Code parameter is required"));
+        }
+        return ResponseEntity.ok(gitHubService.convertManifestCode(code));
     }
 
     private AIProviderConfigResponse mapToResponse(AIProviderConfig c) {

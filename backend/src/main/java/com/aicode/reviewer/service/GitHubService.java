@@ -356,10 +356,6 @@ public class GitHubService {
     }
 
     public Map<String, Object> generateAppManifest(String callbackUrl, String webhookUrl) {
-        Map<String, Object> hookAttributes = new HashMap<>();
-        hookAttributes.put("url", webhookUrl);
-        hookAttributes.put("active", true);
-
         Map<String, String> permissions = new HashMap<>();
         permissions.put("pull_requests", "write");
         permissions.put("issues", "write");
@@ -367,22 +363,80 @@ public class GitHubService {
         permissions.put("checks", "write");
         permissions.put("metadata", "read");
 
-        List<String> defaultEvents = List.of(
-                "pull_request",
-                "pull_request_review",
-                "check_run",
-                "check_suite"
-        );
-
         Map<String, Object> manifest = new HashMap<>();
         manifest.put("name", "AI Code Reviewer - " + UUID.randomUUID().toString().substring(0, 8));
-        manifest.put("url", "https://reviewai.dev");
-        manifest.put("hook_attributes", hookAttributes);
-        manifest.put("redirect_url", callbackUrl);
+        manifest.put("url", callbackUrl != null && !callbackUrl.isBlank() ? callbackUrl : "http://localhost:3000");
+        manifest.put("redirect_url", callbackUrl != null && !callbackUrl.isBlank() ? callbackUrl : "http://localhost:3000/settings/github");
         manifest.put("public", false);
         manifest.put("default_permissions", permissions);
-        manifest.put("default_events", defaultEvents);
+
+        // GitHub explicitly rejects localhost/127.0.0.1 hook URLs in manifests.
+        // Only include hook_attributes if a valid public (non-localhost) URL is supplied.
+        if (webhookUrl != null && !webhookUrl.isBlank() 
+                && !webhookUrl.contains("localhost") 
+                && !webhookUrl.contains("127.0.0.1")) {
+            Map<String, Object> hookAttributes = new HashMap<>();
+            hookAttributes.put("url", webhookUrl);
+            hookAttributes.put("active", true);
+            manifest.put("hook_attributes", hookAttributes);
+            manifest.put("default_events", List.of(
+                    "pull_request",
+                    "pull_request_review",
+                    "check_run",
+                    "check_suite"
+            ));
+        }
 
         return manifest;
+    }
+
+    public Map<String, Object> convertManifestCode(String code) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.github.com/app-manifests/" + code + "/conversions"))
+                    .header("Accept", "application/vnd.github+json")
+                    .header("User-Agent", "AICodeReviewer-App")
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 201 || response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                Map<String, Object> result = new HashMap<>();
+                if (root.has("id")) {
+                    result.put("appId", root.get("id").asText());
+                    this.appId = root.get("id").asText();
+                }
+                if (root.has("name")) {
+                    result.put("appName", root.get("name").asText());
+                    this.appName = root.get("name").asText();
+                }
+                if (root.has("client_id")) {
+                    result.put("clientId", root.get("client_id").asText());
+                    this.clientId = root.get("client_id").asText();
+                }
+                if (root.has("client_secret")) {
+                    result.put("clientSecret", root.get("client_secret").asText());
+                    this.clientSecret = root.get("client_secret").asText();
+                }
+                if (root.has("webhook_secret")) {
+                    result.put("webhookSecret", root.get("webhook_secret").asText());
+                    this.webhookSecret = root.get("webhook_secret").asText();
+                }
+                if (root.has("pem")) {
+                    result.put("pem", root.get("pem").asText());
+                }
+                if (root.has("html_url")) {
+                    result.put("htmlUrl", root.get("html_url").asText());
+                }
+                log.info("Successfully converted GitHub App manifest code for app: {}", this.appName);
+                return result;
+            } else {
+                log.error("Failed to convert manifest code: HTTP {} - {}", response.statusCode(), response.body());
+                throw new IllegalStateException("GitHub manifest code conversion failed: HTTP " + response.statusCode());
+            }
+        } catch (Exception e) {
+            log.error("Exception during manifest code conversion", e);
+            throw new RuntimeException("Error converting GitHub App code: " + e.getMessage(), e);
+        }
     }
 }

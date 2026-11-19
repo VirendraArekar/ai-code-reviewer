@@ -185,12 +185,31 @@ public class GitHubWebhookService {
             AiReviewResponse reviewResponse = aiReviewService.executeReview(pullRequestId, null);
 
             if (postComment && reviewResponse != null) {
-                String comment = "### 🤖 AI Code Reviewer Analysis\n\n" +
-                        "**Quality Score**: " + reviewResponse.getQualityScore() + "/100 | " +
-                        "**Security Score**: " + reviewResponse.getSecurityScore() + "/100\n\n" +
-                        reviewResponse.getSummary() + "\n\n" +
-                        "Found **" + reviewResponse.getFindings().size() + "** issue(s).";
-                gitHubService.postReviewComment(owner, repoName, prNumber, comment);
+                StringBuilder comment = new StringBuilder();
+                comment.append("### Code Review Summary\n\n");
+                comment.append("I took a look through the changes in this pull request. Overall quality looks solid with a score of **")
+                       .append(reviewResponse.getQualityScore()).append("/100** (Security: **")
+                       .append(reviewResponse.getSecurityScore()).append("/100**).\n\n");
+                comment.append(reviewResponse.getSummary()).append("\n\n");
+
+                if (reviewResponse.getFindings() != null && !reviewResponse.getFindings().isEmpty()) {
+                    comment.append("#### Suggested Improvements (").append(reviewResponse.getFindings().size()).append(")\n\n");
+                    for (var finding : reviewResponse.getFindings()) {
+                        comment.append("- **").append(finding.getTitle()).append("** (`").append(finding.getFilePath()).append("`");
+                        if (finding.getLineNumber() > 0) {
+                            comment.append(":").append(finding.getLineNumber());
+                        }
+                        comment.append(")\n  ").append(finding.getDescription()).append("\n");
+                        if (finding.getRecommendedSolution() != null && !finding.getRecommendedSolution().isBlank()) {
+                            comment.append("  *Recommendation:* ").append(finding.getRecommendedSolution()).append("\n");
+                        }
+                        comment.append("\n");
+                    }
+                } else {
+                    comment.append("No critical issues or blockers identified. Looks ready for merge!\n");
+                }
+
+                gitHubService.postReviewComment(owner, repoName, prNumber, comment.toString());
             }
         } catch (Exception e) {
             log.error("Async review execution failed for PR: {}", pullRequestId, e);

@@ -175,7 +175,6 @@ export const PullRequestDetailPage: React.FC = () => {
         { role: 'assistant', text: res.response, timestamp: 'Just now' },
       ]);
     } catch (err) {
-      // Realistic contextual AI response
       setTimeout(() => {
         let answer = `I analyzed the diff in \`${(selectedFile ? selectedFile.filename : 'No file')}\` for "${promptText}".`;
         if (promptText.toLowerCase().includes('sql') || promptText.toLowerCase().includes('injection')) {

@@ -22,7 +22,7 @@ public class BaseAiAnalysisEngine {
 
     public String buildPrompt(PullRequest pr, List<PullRequestFile> files, String customInstructions, ReviewMode mode) {
         StringBuilder sb = new StringBuilder();
-        sb.append("You are an elite Principal Software Architect, Security Auditor, and Staff Engineer.\n");
+        sb.append("You are a Senior Staff Software Engineer and thoughtful colleague conducting a thorough, friendly code review.\n");
         sb.append("Review this GitHub Pull Request:\n");
         sb.append("Repository: ").append(pr.getRepository().getFullName()).append("\n");
         sb.append("PR Title: ").append(sanitize(pr.getTitle())).append("\n");
@@ -30,24 +30,25 @@ public class BaseAiAnalysisEngine {
         sb.append("Review Mode: ").append(mode.name()).append("\n");
 
         if (customInstructions != null && !customInstructions.isBlank()) {
-            sb.append("\nCUSTOM REPOSITORY CODING RULES:\n").append(customInstructions).append("\n");
+            sb.append("\nREPOSITORY CODING GUIDELINES:\n").append(customInstructions).append("\n");
         }
 
-        sb.append("\n=== CODE DIFFS ===\n");
+        sb.append("\n=== CODE CHANGES ===\n");
         for (PullRequestFile file : files) {
             sb.append("FILE: ").append(file.getFilename()).append("\n");
             sb.append("```\n");
-            sb.append(file.getPatch() != null ? file.getPatch() : "// No patch available").append("\n");
+            sb.append(file.getPatch() != null ? file.getPatch() : "// No changes or patch available").append("\n");
             sb.append("```\n\n");
         }
 
-        sb.append("Analyze for:\n");
-        sb.append("1. BUGS (null dereference, boundary conditions, race conditions)\n");
-        sb.append("2. SECURITY (OWASP Top 10, SQLi, timing attacks, secret leaks)\n");
-        sb.append("3. PERFORMANCE (N+1 queries, high memory complexity, excessive loops)\n");
-        sb.append("4. CODE QUALITY (SOLID violations, dead code, naming smells)\n");
-        sb.append("5. ARCHITECTURE (boundary leaks, tight coupling)\n");
-        sb.append("6. TESTING (missing unit tests for new branches)\n");
+        sb.append("Please evaluate the changes for:\n");
+        sb.append("1. BUGS (boundary conditions, null safety, race conditions)\n");
+        sb.append("2. SECURITY (timing attacks, injection risks, auth flaws)\n");
+        sb.append("3. PERFORMANCE (unnecessary loops, DB queries, memory usage)\n");
+        sb.append("4. CODE QUALITY (readability, clean code, maintainability)\n");
+        sb.append("5. ARCHITECTURE (clean separation of concerns)\n");
+        sb.append("6. TESTING (adequate test coverage for new branches)\n\n");
+        sb.append("Write constructive, clear, and actionable feedback as if writing directly to a respected peer.");
 
         return sb.toString();
     }
@@ -77,14 +78,14 @@ public class BaseAiAnalysisEngine {
                         .pullRequestId(pr.getId())
                         .filePath(filename)
                         .lineNumber(findLineNumber(patch, ".equals("))
-                        .title("Insecure String Comparison on Cryptographic Value (Timing Attack)")
-                        .description("Using standard `.equals()` on cryptographic hashes or HMAC tokens exposes execution timing differences.")
+                        .title("Use constant-time comparison for cryptographic tokens (Timing Attack)")
+                        .description("Let's avoid using standard `.equals()` on cryptographic hashes or HMAC signatures to prevent potential timing side-channel leaks.")
                         .severity(FindingSeverity.CRITICAL)
                         .category(FindingCategory.SECURITY)
-                        .technicalExplanation("Standard equality comparison returns early at the first mismatched byte, allowing an attacker to deduce expected values iteratively.")
-                        .whyItMatters("Allows forging authorization tokens or webhook signatures.")
-                        .potentialImpact("Authentication bypass or webhook spoofing.")
-                        .recommendedSolution("Use `MessageDigest.isEqual(expected.getBytes(), actual.getBytes())` for constant-time comparison.")
+                        .technicalExplanation("Standard string equality returns early on the first non-matching byte, allowing attackers to measure execution time differences to deduce expected values.")
+                        .whyItMatters("Critical for protecting HMAC signatures and authorization tokens against forgery.")
+                        .potentialImpact("Possible token spoofing or webhook validation bypass.")
+                        .recommendedSolution("Switch to `MessageDigest.isEqual(...)` which compares byte arrays in constant time.")
                         .originalCodeSnippet("if (expectedSignature.equals(actualSignature))")
                         .correctedCodeSnippet("if (java.security.MessageDigest.isEqual(expectedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8), actualSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8)))")
                         .confidenceScore(new BigDecimal("0.980"))
@@ -103,14 +104,14 @@ public class BaseAiAnalysisEngine {
                         .pullRequestId(pr.getId())
                         .filePath(filename)
                         .lineNumber(findLineNumber(patch, "findByToken"))
-                        .title("Potential Race Condition in Token Family Rotation")
-                        .description("Concurrent HTTP requests presenting the same refresh token can pass before the revocation status commits.")
+                        .title("Add concurrency lock during token rotation")
+                        .description("Concurrent requests presenting the same refresh token could both pass validation before the revocation commits.")
                         .severity(FindingSeverity.HIGH)
                         .category(FindingCategory.SECURITY)
                         .technicalExplanation("Without row-level write locks (`PESSIMISTIC_WRITE`) or unique nonce constraints, duplicate child tokens can be minted under parallel access.")
-                        .whyItMatters("Permits persistent parallel sessions even after compromised token replay.")
-                        .potentialImpact("Session hijacking and authorization persistence.")
-                        .recommendedSolution("Apply `@Lock(LockModeType.PESSIMISTIC_WRITE)` to the token query or enforce unique single-use token constraints.")
+                        .whyItMatters("Prevents unauthorized parallel sessions from being created via replayed credentials.")
+                        .potentialImpact("Potential session hijacking or replay vulnerability.")
+                        .recommendedSolution("Use `@Lock(LockModeType.PESSIMISTIC_WRITE)` when retrieving the token or enforce an atomic single-use status update.")
                         .originalCodeSnippet("Token token = tokenRepo.findByToken(rawToken);")
                         .correctedCodeSnippet("Token token = tokenRepo.findByTokenWithLock(rawToken);")
                         .confidenceScore(new BigDecimal("0.940"))
@@ -129,14 +130,14 @@ public class BaseAiAnalysisEngine {
                         .pullRequestId(pr.getId())
                         .filePath(filename)
                         .lineNumber(findLineNumber(patch, "@PostMapping"))
-                        .title("Missing Rate Limiter on Authentication Refresh Endpoint")
-                        .description("The endpoint lacks rate limiting protection against automated brute-force attacks.")
+                        .title("Add rate limiting to token refresh endpoint")
+                        .description("This endpoint handles token refresh logic without rate limiting, making it susceptible to high-volume automated requests.")
                         .severity(FindingSeverity.MEDIUM)
                         .category(FindingCategory.PERFORMANCE)
-                        .technicalExplanation("Unauthenticated or automated requests can flood the token revocation queries, exhausting DB connections.")
-                        .whyItMatters("Protects the auth service from denial of service and credential stuffing.")
-                        .potentialImpact("Database connection starvation.")
-                        .recommendedSolution("Annotate endpoint with `@RateLimit(requests = 10, durationSeconds = 60)`.")
+                        .technicalExplanation("Unthrottled requests can overwhelm the token verification pipeline and exhaust available database connections.")
+                        .whyItMatters("Protects auth services from denial-of-service and brute-force credential abuse.")
+                        .potentialImpact("Database connection pool exhaustion and elevated server latency.")
+                        .recommendedSolution("Annotate the endpoint with `@RateLimit(requests = 10, durationSeconds = 60)` or configure gateway throttling.")
                         .originalCodeSnippet("@PostMapping(\"/refresh\")")
                         .correctedCodeSnippet("@RateLimit(requests = 10, durationSeconds = 60)\n@PostMapping(\"/refresh\")")
                         .confidenceScore(new BigDecimal("0.890"))
@@ -155,14 +156,14 @@ public class BaseAiAnalysisEngine {
                         .pullRequestId(pr.getId())
                         .filePath(filename)
                         .lineNumber(findLineNumber(patch, "isRevoked"))
-                        .title("Missing Unit Test for Replay Token Family Invalidation")
-                        .description("No test coverage verified for the branch revoking downstream tokens when a revoked token is replayed.")
+                        .title("Add unit test for revoked token replay scenario")
+                        .description("Consider adding a unit test verifying that reusing an already revoked token properly invalidates the entire token family.")
                         .severity(FindingSeverity.LOW)
                         .category(FindingCategory.TESTING)
-                        .technicalExplanation("Critical security invariants must have explicit regression tests asserting exception throws and database cascade calls.")
-                        .whyItMatters("Prevents accidental regressions during future maintenance.")
-                        .potentialImpact("Silently broken token invalidation.")
-                        .recommendedSolution("Add a dedicated test case asserting `assertThrows(CompromisedTokenException.class, () -> service.verifyAndRotate(token))`.")
+                        .technicalExplanation("This critical security path enforces token invalidation invariants; having dedicated regression coverage prevents silent regressions.")
+                        .whyItMatters("Keeps authentication invariants covered during future refactoring.")
+                        .potentialImpact("Potential undetected regression in token revocation logic.")
+                        .recommendedSolution("Add a test case asserting `assertThrows(CompromisedTokenException.class, () -> service.verifyAndRotate(token))`.")
                         .correctedCodeSnippet("@Test\nvoid shouldRevokeFamilyOnReusedToken() {\n    Token token = Token.builder().token(\"t1\").revoked(true).familyId(\"fam-1\").build();\n    when(tokenRepo.findByToken(\"t1\")).thenReturn(Optional.of(token));\n    assertThrows(CompromisedTokenException.class, () -> service.verifyAndRotate(\"t1\"));\n    verify(tokenRepo).revokeFamily(\"fam-1\");\n}")
                         .confidenceScore(new BigDecimal("0.960"))
                         .status(FindingStatus.OPEN)
@@ -202,18 +203,23 @@ public class BaseAiAnalysisEngine {
 
         long duration = System.currentTimeMillis() - startTime;
 
-        String summary = String.format(
-                "Autonomous review processed %d changed file(s) under %s mode. Identified %d finding(s): %d Critical, %d High, %d Medium, %d Low. Overall quality score: %d/100, Security score: %d/100.",
-                files.size(),
-                mode.name(),
-                findings.size(),
-                findings.stream().filter(f -> f.getSeverity() == FindingSeverity.CRITICAL).count(),
-                findings.stream().filter(f -> f.getSeverity() == FindingSeverity.HIGH).count(),
-                findings.stream().filter(f -> f.getSeverity() == FindingSeverity.MEDIUM).count(),
-                findings.stream().filter(f -> f.getSeverity() == FindingSeverity.LOW).count(),
-                qualityScore,
-                securityScore
-        );
+        String summary;
+        if (findings.isEmpty()) {
+            summary = String.format(
+                    "Reviewed changes across %d file(s). The implementation looks clean, follows sound engineering practices, and introduces no blockers. Overall quality score: %d/100, Security score: %d/100.",
+                    files.size(),
+                    qualityScore,
+                    securityScore
+            );
+        } else {
+            summary = String.format(
+                    "Reviewed changes across %d file(s). Overall the PR is in good shape, but there are %d recommendation(s) to address before merging—primarily around security checks and concurrency. Overall quality score: %d/100, Security score: %d/100.",
+                    files.size(),
+                    findings.size(),
+                    qualityScore,
+                    securityScore
+            );
+        }
 
         return AiReviewResponse.builder()
                 .id(UUID.randomUUID().toString())

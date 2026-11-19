@@ -25,7 +25,7 @@ export const ReviewResultsPage: React.FC = () => {
     pullRequestId: 'pr-1',
     jobStatus: 'COMPLETED' as const,
     summary:
-      'Autonomous analysis completed across 4 changed files and 390 line additions/deletions. Identified 1 potential high-severity race condition and 2 performance improvements.',
+      'Reviewed changes across 4 files. Found 1 concurrency item and 2 performance suggestions to review before merging.',
     qualityScore: 89,
     securityScore: 84,
     performanceScore: 92,
